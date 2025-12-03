@@ -14,15 +14,15 @@ after-startup-command = [
 start-at-login = true
 
 on-focus-changed = [
-    # "exec-and-forget osascript -e 'tell application id \"tracesOf.Uebersicht\" to refresh widget id \"simple-bar-index-jsx\"'",
-    "exec-and-forget curl http://localhost:7776/aerospace/spaces/refresh",
+    "exec-and-forget osascript -e 'tell application id \"tracesOf.Uebersicht\" to refresh widget id \"simple-bar-index-jsx\"'",
+    # "exec-and-forget curl http://localhost:7776/aerospace/spaces/refresh",
 ]
 
 exec-on-workspace-change = [
     '/bin/zsh',
     '-c',
-    # '/usr/bin/osascript -e "tell application id \"tracesOf.Uebersicht\" to refresh widget id \"simple-bar-index-jsx\""',
-    'curl "http://localhost:7776/aerospace/spaces/refresh?space=$AEROSPACE_FOCUSED_WORKSPACE"',
+    '/usr/bin/osascript -e "tell application id \"tracesOf.Uebersicht\" to refresh widget id \"simple-bar-index-jsx\""',
+    # 'curl "http://localhost:7776/aerospace/spaces/refresh?space=$AEROSPACE_FOCUSED_WORKSPACE"',
 ]
 
 # Notify Sketchybar about workspace change
@@ -77,15 +77,15 @@ preset = 'qwerty'
 [gaps]
 inner.horizontal = 14
 inner.vertical = 14
-outer.left = 14
-outer.bottom = 14
-outer.top = [
-    { monitor."Odyssey G93SC" = 50 },
-    { monitor."MQ16AHE" = 50 },
-    { monitor.built-in = 10 },
-    50,
+outer.left = 8
+outer.top = 8
+outer.bottom = [
+    { monitor."Odyssey G93SC" = 40 },
+    { monitor."MQ16AHE" = 40 },
+    { monitor.built-in = 35 },
+    40,
 ]
-outer.right = 14
+outer.right = 8
 
 # 'main' binding mode declaration
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
