@@ -204,6 +204,8 @@ shift-down = ['volume set 0', 'mode main']
 1 = 'main'
 2 = 'secondary'
 
+# To know app id: osascript -e 'id of app "App Name"'
+
 [[on-window-detected]]
 if.app-id = 'net.whatsapp.WhatsApp'
 run = 'move-node-to-workspace 9'
@@ -219,3 +221,15 @@ run = 'move-node-to-workspace 9'
 [[on-window-detected]]
 if.app-id = 'com.microsoft.teams2'
 run = 'move-node-to-workspace 8'
+
+[[on-window-detected]]
+if.app-id = 'com.tinyspeck.slackmacgap'
+run = 'move-node-to-workspace 8'
+
+[[on-window-detected]]
+if.app-id = 'com.spotify.client'
+run = 'move-node-to-workspace 2'
+
+[[on-window-detected]]
+if.app-id = 'com.google.Chrome'
+run = 'move-node-to-workspace 2'
