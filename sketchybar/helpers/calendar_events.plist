@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key>
+	<string>com.github.francesco-rapetti.sketchybar-calendar</string>
+	<key>CFBundleName</key>
+	<string>SketchyBar Calendar</string>
+	<key>CFBundleExecutable</key>
+	<string>calendar_events</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Mostra in SketchyBar il prossimo evento della giornata.</string>
+</dict>
+</plist>

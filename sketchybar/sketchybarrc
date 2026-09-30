@@ -68,8 +68,31 @@ sketchybar --add item front_app left \
 
 ##### Right Items #####
 sketchybar --add item clock right \
-           --set clock update_freq=10 script="$PLUGIN_DIR/clock.sh" \
-           --add item battery right \
+           --set clock update_freq=10 script="$PLUGIN_DIR/clock.sh"
+
+# Next event of the day from the macOS calendars, then today's all-day events, else hidden.
+# macOS grants calendar access per app, so the helper is built into an app of its own and
+# started with `open`: it triggers calendar_change whenever the event to show changes.
+# It is started without the shell's PATH, hence the path to sketchybar
+CALENDAR_SOURCE="$CONFIG_DIR/helpers/calendar_events"
+CALENDAR_APP="$CALENDAR_SOURCE.app"
+CALENDAR_HELPER="$CALENDAR_APP/Contents/MacOS/calendar_events"
+if [ ! -x "$CALENDAR_HELPER" ] || [ "$CALENDAR_SOURCE.swift" -nt "$CALENDAR_HELPER" ] \
+   || [ "$CALENDAR_SOURCE.plist" -nt "$CALENDAR_HELPER" ]; then
+  mkdir -p "$CALENDAR_APP/Contents/MacOS"
+  cp "$CALENDAR_SOURCE.plist" "$CALENDAR_APP/Contents/Info.plist"
+  swiftc -O "$CALENDAR_SOURCE.swift" -o "$CALENDAR_HELPER"
+  codesign --force --sign - "$CALENDAR_APP"
+fi
+sketchybar --add event calendar_change \
+           --add item calendar right \
+           --set calendar "${with_icon[@]}" drawing=off script="$PLUGIN_DIR/calendar.sh" \
+                          click_script="open -a Calendar" \
+           --subscribe calendar calendar_change
+pkill -x calendar_events
+open -g -n "$CALENDAR_APP" --args "$(command -v sketchybar)"
+
+sketchybar --add item battery right \
            --set battery update_freq=120 script="$PLUGIN_DIR/battery.sh" \
            --subscribe battery system_woke power_source_change
 
