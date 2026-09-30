@@ -10,7 +10,6 @@ BASE=0xe61e1e2e
 CRUST=0xff11111b
 SURFACE=0xff313244
 TEXT=0xffcdd6f4
-SKY=0xff89dceb
 RED=0xfff38ba8
 
 ##### Bar Appearance #####
@@ -44,25 +43,31 @@ with_icon=(
 ##### AeroSpace Workspaces #####
 # See: https://nikitabobko.github.io/AeroSpace/goodies#show-aerospace-workspaces-in-sketchybar
 # Fixed 1-9 list (matches the alt-<n> bindings) instead of `aerospace list-workspaces --all`,
-# which only returns the workspaces alive when the bar loads
-sketchybar --add event aerospace_workspace_change
+# which only returns the workspaces alive when the bar loads.
+# aerospace.sh runs for the hidden item aerospace: it shows, hides and highlights the numbers and
+# adds the icons of the windows after them (a click on one focuses that window).
+# space_windows_change: a window opened or closed. aerospace_windows_change: AeroSpace moved the
+# focus or a window (on-focus-changed and the alt-shift-<n> bindings in aerospace.toml)
+sketchybar --add event aerospace_workspace_change \
+           --add event aerospace_windows_change
 
 for sid in 1 2 3 4 5 6 7 8 9; do
   workspace=(
+    drawing=off
+    padding_right=0
     label="$sid"
-    label.padding_left=10
+    label.padding_left=6
     label.padding_right=10
-    background.color=$SKY
-    background.corner_radius=6
-    background.height=22
-    background.drawing=off
     click_script="aerospace workspace $sid"
-    script="$PLUGIN_DIR/aerospace.sh $sid"
   )
   sketchybar --add item space.$sid left \
-             --set space.$sid "${workspace[@]}" \
-             --subscribe space.$sid aerospace_workspace_change front_app_switched
+             --set space.$sid "${workspace[@]}"
 done
+
+sketchybar --add item aerospace left \
+           --set aerospace drawing=off script="$PLUGIN_DIR/aerospace.sh" \
+           --subscribe aerospace aerospace_workspace_change aerospace_windows_change \
+                                 front_app_switched space_windows_change
 
 ##### Left Items #####
 sketchybar --add item front_app left \
@@ -103,8 +108,32 @@ sketchybar --add event brew_update \
            --set brew "${brew[@]}" \
            --subscribe brew brew_update system_woke mouse.clicked mouse.exited.global
 
+# A click opens the calendar of the month, an image that clock.sh has the helper calendar_month
+# draw each time; a click on it opens the Calendar app
+MONTH_HELPER="$CONFIG_DIR/helpers/calendar_month"
+if [ ! -x "$MONTH_HELPER" ] || [ "$MONTH_HELPER.swift" -nt "$MONTH_HELPER" ]; then
+  swiftc -O "$MONTH_HELPER.swift" -o "$MONTH_HELPER"
+fi
+clock=(
+  update_freq=10
+  script="$PLUGIN_DIR/clock.sh"
+  popup.align=right
+  popup.blur_radius=20
+  popup.background.color=$BASE
+  popup.background.corner_radius=10
+  popup.background.border_width=2
+  popup.background.border_color=$SURFACE
+)
+month=(
+  label.drawing=off
+  background.drawing=on
+  click_script="open -a Calendar; sketchybar --set clock popup.drawing=off"
+)
 sketchybar --add item clock right \
-           --set clock update_freq=10 script="$PLUGIN_DIR/clock.sh"
+           --set clock "${clock[@]}" \
+           --subscribe clock mouse.clicked mouse.exited.global \
+           --add item clock.month popup.clock \
+           --set clock.month "${month[@]}"
 
 # Next event of the day from the macOS calendars, then today's all-day events, else hidden.
 # macOS grants calendar access per app, so the helper is built into an app of its own and
@@ -127,6 +156,44 @@ sketchybar --add event calendar_change \
            --subscribe calendar calendar_change
 pkill -x calendar_events
 open -g -n "$CALENDAR_APP" --args "$(command -v sketchybar)"
+
+# Claude plan usage: how much of the 5-hour session and of the weekly limit is used, in yellow
+# from 75% and in red from 90%. A click opens the account, a bar and the time to the reset for
+# each limit and the row that logs out, or the one that logs in. claude.sh asks Claude Code every
+# 5 minutes, on wake and when the popup opens; claude_update refreshes it, e.g. after a login.
+# The icon is the spark of the Claude app's menu bar icon, which helpers/claude_icon.js tints
+# orange since SketchyBar can't color images; without the app it is the ✻ of Claude Code
+CLAUDE_TRAY_ICON=/Applications/Claude.app/Contents/Resources/TrayIconTemplate-Dark@3x.png
+CLAUDE_ICON="$CONFIG_DIR/helpers/claude_icon.png"
+if [ -f "$CLAUDE_TRAY_ICON" ] && { [ "$CLAUDE_TRAY_ICON" -nt "$CLAUDE_ICON" ] \
+   || [ "$CONFIG_DIR/helpers/claude_icon.js" -nt "$CLAUDE_ICON" ]; }; then
+  osascript -l JavaScript "$CONFIG_DIR/helpers/claude_icon.js" "$CLAUDE_TRAY_ICON" "$CLAUDE_ICON" D97757
+fi
+if [ -f "$CLAUDE_ICON" ]; then
+  # 72 px at 0.3: as tall as the SF Symbols of the other items
+  claude_icon=(icon="" icon.width=22 icon.background.drawing=on icon.background.image="$CLAUDE_ICON"
+               icon.background.image.scale=0.3)
+else
+  claude_icon=(icon="✻" icon.color=0xffd97757)
+fi
+claude=(
+  "${with_icon[@]}"
+  "${claude_icon[@]}"
+  label.drawing=off
+  update_freq=300
+  script="$PLUGIN_DIR/claude.sh"
+  popup.align=right
+  popup.height=24
+  popup.blur_radius=20
+  popup.background.color=$BASE
+  popup.background.corner_radius=10
+  popup.background.border_width=2
+  popup.background.border_color=$SURFACE
+)
+sketchybar --add event claude_update \
+           --add item claude right \
+           --set claude "${claude[@]}" \
+           --subscribe claude claude_update system_woke mouse.clicked mouse.exited.global
 
 sketchybar --add item battery right \
            --set battery update_freq=120 script="$PLUGIN_DIR/battery.sh" \
