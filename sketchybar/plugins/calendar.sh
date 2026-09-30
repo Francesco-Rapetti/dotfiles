@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 # Next event of the day from the macOS calendars, or today's all-day events once there are no more
-# timed ones. helpers/calendar_events sends it with calendar_change (KIND, TIME and TITLE)
+# timed ones. helpers/calendar_events sends it with calendar_change (KIND and LABEL, already in the
+# language of the Mac)
 # The icon is an SF Symbol, so it needs the SF Pro font (brew install --cask font-sf-pro)
 
 CALENDAR=􀉉  # calendar
@@ -13,10 +14,8 @@ RED=0xfff38ba8
 [ "$SENDER" = "calendar_change" ] || exit 0
 
 case "$KIND" in
-  upcoming) item=(drawing=on icon.color=$TEXT label="$TIME  $TITLE") ;;
-  ongoing) item=(drawing=on icon.color=$TEXT label="$TITLE · fino alle $TIME") ;;
-  allday) item=(drawing=on icon.color=$TEXT label="$TITLE") ;;
-  denied) item=(drawing=on icon.color=$RED label="Nessun accesso al calendario") ;;
+  upcoming | ongoing | allday) item=(drawing=on icon.color=$TEXT label="$LABEL") ;;
+  denied) item=(drawing=on icon.color=$RED label="$LABEL") ;;
   *) item=(drawing=off) ;;
 esac
 
