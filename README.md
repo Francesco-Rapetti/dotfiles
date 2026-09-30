@@ -10,7 +10,7 @@ dotfiles/
 └── sketchybar/                → ~/.config/sketchybar
     ├── sketchybarrc
     ├── plugins/*.sh
-    └── helpers/*.swift         (compilati da sketchybarrc)
+    └── helpers/*.swift, *.plist  (compilati da sketchybarrc)
 ```
 
 Le cartelle in `~/.config` sono symlink verso questo repo: le app leggono la config dal percorso
@@ -112,8 +112,8 @@ aerospace config --config-path
 ```
 
 Deve stampare `~/.config/aerospace/aerospace.toml`. In alto dovresti vedere la barra con i
-workspace, l'app attiva, l'uscita e l'ingresso audio, la rete, la batteria e l'orologio, e la
-finestra attiva con il bordo sfumato.
+workspace, l'app attiva, l'uscita e l'ingresso audio, la rete, la batteria, il prossimo evento del
+calendario e l'orologio, e la finestra attiva con il bordo sfumato.
 
 Se la barra è vuota o mancano i workspace:
 
@@ -139,6 +139,18 @@ l'audio non compare, compilalo a mano per vedere l'errore:
 ```bash
 swiftc -O ~/Developer/dotfiles/sketchybar/helpers/audio_devices.swift -o ~/Developer/dotfiles/sketchybar/helpers/audio_devices
 ```
+
+Il calendario mostra il prossimo evento della giornata (`14:30  Riunione`). Mentre un evento è in
+corso mostra quello (`Riunione · fino alle 15:00`), a meno che il successivo non inizi prima che
+finisca. Quando non restano eventi con orario compaiono quelli di tutto il giorno, e se non ci sono
+neanche quelli l'elemento sparisce. Legge tutti i calendari dell'app Calendario, tranne gli eventi
+annullati o rifiutati, e un clic apre Calendario. macOS concede l'accesso al calendario solo
+all'app che lo chiede, quindi `sketchybarrc` compila `helpers/calendar_events.swift` in una piccola
+app senza icona nel Dock, `helpers/calendar_events.app` (non è nel repo), e la avvia con `open`.
+Al primo avvio macOS chiede l'accesso ai calendari per **SketchyBar Calendar**: scegli *Consenti*.
+Se l'hai negato, al posto dell'evento compare `Nessun accesso al calendario` in rosso: attiva
+SketchyBar Calendar in Impostazioni di Sistema → Privacy e sicurezza → Calendari, poi
+`sketchybar --reload`.
 
 ## Da adattare al nuovo Mac
 
