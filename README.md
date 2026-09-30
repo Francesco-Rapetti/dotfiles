@@ -6,6 +6,7 @@ disegnati da [JankyBorders](https://github.com/FelixKratz/JankyBorders).
 
 ```
 dotfiles/
+├── Brewfile                   (i pacchetti Homebrew)
 ├── aerospace/aerospace.toml   → ~/.config/aerospace
 └── sketchybar/                → ~/.config/sketchybar
     ├── sketchybarrc
@@ -33,7 +34,7 @@ Alla fine segui le istruzioni che stampa per aggiungere `brew` al `PATH` (su App
 ```bash
 brew install --cask nikitabobko/tap/aerospace
 brew tap FelixKratz/formulae
-brew install sketchybar borders
+brew install sketchybar borders terminal-notifier
 brew install --cask font-sf-pro
 ```
 
@@ -41,6 +42,9 @@ I testi della barra usano Helvetica Neue, già presente su macOS. Le icone di re
 [SF Symbols](https://developer.apple.com/sf-symbols/) e servono il font SF Pro: il cask è un
 installer `.pkg`, quindi chiede la password di amministratore. Senza SF Pro le icone appaiono come
 riquadri vuoti.
+
+Gli stessi pacchetti sono elencati nel `Brewfile`: SketchyBar mostra gli aggiornamenti solo di
+quelli, quindi se ne aggiungi uno aggiungilo anche lì.
 
 ### 3. Clona il repo
 
@@ -113,7 +117,8 @@ aerospace config --config-path
 
 Deve stampare `~/.config/aerospace/aerospace.toml`. In alto dovresti vedere la barra con i
 workspace, l'app attiva, l'uscita e l'ingresso audio, la rete, la batteria, il prossimo evento del
-calendario e l'orologio, e la finestra attiva con il bordo sfumato.
+calendario, l'orologio e, se ci sono aggiornamenti, il loro pallino all'estrema destra, e la finestra
+attiva con il bordo sfumato.
 
 Se la barra è vuota o mancano i workspace:
 
@@ -151,6 +156,28 @@ Al primo avvio macOS chiede l'accesso ai calendari per **SketchyBar Calendar**: 
 Se l'hai negato, al posto dell'evento compare `Nessun accesso al calendario` in rosso: attiva
 SketchyBar Calendar in Impostazioni di Sistema → Privacy e sicurezza → Calendari, poi
 `sketchybar --reload`.
+
+Quando uno dei pacchetti del `Brewfile` ha una nuova versione su Homebrew, all'estrema destra
+compare un pallino rosso con quanti sono. Un clic apre l'elenco con la versione installata e quella
+nuova (`1.8.4 → 1.9.0`), un clic su un pacchetto lo aggiorna e, se sono più di uno, c'è anche
+*Aggiorna tutto*, che aggiorna solo quelli dell'elenco: gli altri pacchetti di Homebrew restano
+com'erano, tranne le dipendenze di cui una nuova versione ha bisogno. Durante l'aggiornamento il
+pallino diventa giallo e gli altri clic vengono ignorati. `plugins/brew.sh` esegue `brew update`
+ogni ora, al risveglio e a ogni `sketchybar --reload`. Dopo l'aggiornamento riavvia `sketchybar` e
+`borders` con i loro comandi di `after-startup-command` in `aerospace.toml`, così usano subito la
+nuova versione. Se un aggiornamento non riesce compare una notifica, e un clic apre l'output di brew
+(`~/Library/Logs/sketchybar-brew.log`). `font-sf-pro` ha versione `latest`, quindi Homebrew non lo
+segnala mai come da aggiornare.
+
+AeroSpace invece continua con la vecchia versione finché non si riavvia, e riavviarlo da solo in
+mezzo al lavoro rimescolerebbe le finestre. Dopo averlo aggiornato compare una notifica: un clic
+apre l'elenco, che in cima ha *Riavvia AeroSpace*, e il pallino la conta finché non lo riavvii. La
+riga c'è anche se hai aggiornato AeroSpace da terminale, perché `aerospace --version` mostra sia la
+versione installata sia quella in esecuzione. Il riavvio disattiva AeroSpace, che così rimette sullo
+schermo le finestre dei workspace nascosti, poi lo chiude e lo riapre: ogni finestra finisce nel
+workspace visibile sul suo monitor, tranne le app con una regola `on-window-detected`, che tornano
+nel loro. Le notifiche le manda `terminal-notifier`: alla prima macOS chiede il permesso, scegli
+*Consenti*.
 
 ## Da adattare al nuovo Mac
 
