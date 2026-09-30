@@ -15,7 +15,7 @@ sketchybar --bar position=top height=32 color=$BASE blur_radius=20 \
                  padding_left=8 padding_right=8
 
 ##### Defaults #####
-# Text only: no Nerd Font installed, so icon glyphs would render as boxes
+# Text only: the items that need an icon turn it on and use SF Symbols from SF Pro
 default=(
   padding_left=4
   padding_right=4
@@ -61,6 +61,20 @@ sketchybar --add item clock right \
            --add item battery right \
            --set battery update_freq=120 script="$PLUGIN_DIR/battery.sh" \
            --subscribe battery system_woke power_source_change
+
+# wifi_change fires whenever the primary connection changes (Wi-Fi or Ethernet);
+# update_freq catches the rest, e.g. Wi-Fi turned on without joining a network
+network=(
+  update_freq=30
+  icon.drawing=on
+  icon.font="SF Pro:Semibold:14.0"
+  icon.padding_left=6
+  label.padding_left=4
+  script="$PLUGIN_DIR/network.sh"
+)
+sketchybar --add item network right \
+           --set network "${network[@]}" \
+           --subscribe network wifi_change system_woke
 
 ##### Force all scripts to run the first time #####
 sketchybar --update
