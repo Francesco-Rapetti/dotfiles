@@ -29,8 +29,10 @@ CRITICAL=90  # and from this one red
 FONT="Helvetica Neue:Bold:13.0"  # the default label font
 SMALL_FONT="Helvetica Neue:Medium:11.0"
 MIN_WIDTH=260
-PADDING=10  # inside the rows
-GAP=16      # between the two columns of a row
+PADDING=10       # inside the rows
+GAP=16           # between the two columns of a row
+ROW_HEIGHT=24    # of a row of text, unless it sets its own
+LIMIT_HEIGHT=34  # of the title of a limit, or of the message in its place, with room above
 BAR_HEIGHT=6
 DAYS=(lun mar mer gio ven sab dom)
 
@@ -137,11 +139,16 @@ row() {
   sets+=(--set "$name" padding_left=0 padding_right=0 "$@")
 }
 
-# A row with a text on the left and, if given, one on the right: the widths are set by layout
+# A row with a text on the left and, if given, one on the right: the widths are set by layout.
+# A row is as tall as its background, and SketchyBar draws it in a window of that height which
+# clips what is out of it: the texts stay centered and the rows that need more room above or less
+# add background.height
 # text_row <name> <left> <left font> <left color> [<right> <right font> <right color>]
 text_row() {
   local properties=(width=$WIDTH icon.drawing=on icon="$2" icon.font="$3" icon.color=$4
-                    icon.padding_left=$PADDING icon.padding_right=0 label.padding_left=0)
+                    icon.padding_left=$PADDING icon.padding_right=0 label.padding_left=0
+                    background.drawing=on background.color=$TRANSPARENT
+                    background.height=$ROW_HEIGHT)
   if [ -n "$5" ]; then
     # A fixed width includes the padding
     properties+=(icon.width=$((WIDTH - RIGHT_WIDTH - PADDING))
@@ -168,12 +175,13 @@ bar_row() {
 }
 
 # limit_rows <name> <title> <percent> <reset text>: the title with the percentage, the bar and the
-# reset. The rows of a popup are all as tall, so the bar and the reset are lifted to the title
+# reset. The title is taller, which parts the limits, and the bar row is only the bar
 limit_rows() {
   text_row "$1" "$2" "$FONT" $TEXT "$3%" "$FONT" "$(color_for "$3" $TEXT)"
+  sets+=(background.height=$LIMIT_HEIGHT)
   bar_row "$1.bar" "$3" "$(color_for "$3" $CLAUDE_ORANGE)"
   text_row "$1.reset" "$4" "$SMALL_FONT" $SUBTEXT
-  sets+=(--set "claude.row.$1.bar" y_offset=5 --set "claude.row.$1.reset" y_offset=10)
+  sets+=(background.height=30)
 }
 
 # action_row <login|logout> <text>: the row lights up under the mouse and runs this on click
@@ -181,7 +189,7 @@ action_row() {
   row "$1" width=$WIDTH icon.drawing=on icon="$2" icon.font="$FONT" icon.color=$SKY \
            icon.padding_left=$PADDING label.drawing=off script="$0 $1" \
            background.drawing=on background.color=$TRANSPARENT background.corner_radius=6 \
-           background.height=24
+           background.height=$ROW_HEIGHT
   sets+=(--subscribe "claude.row.$1" mouse.entered mouse.exited mouse.clicked)
 }
 
@@ -227,6 +235,7 @@ logged_out() {
 # problem <message>: the account rows stay, with the message in place of the limits
 problem() {
   text_row status "$1" "$FONT" $YELLOW
+  sets+=(background.height=$LIMIT_HEIGHT)
   action_row logout "$LOGOUT"
   show label.drawing=off
 }
@@ -278,8 +287,8 @@ refresh() {
   layout "$plan" "100%" "$UPDATING" -- "$details" "$session_text" "$week_text"
 
   text_row account "$NAME_TEXT" "$FONT" $TEXT "$plan" "$SMALL_FONT" $SUBTEXT
-  # Lifted to the name, which leaves more room before the limits
-  [ -n "$details" ] && text_row details "$details" "$SMALL_FONT" $SUBTEXT && sets+=(y_offset=4)
+  # Close to the name, which leaves more room before the limits
+  [ -n "$details" ] && text_row details "$details" "$SMALL_FONT" $SUBTEXT && sets+=(background.height=16)
   case "$session_percent" in
     none) problem "Il tuo account non ha limiti del piano" ;;
     "") problem "Impossibile leggere l'uso di Claude" ;;
