@@ -11,7 +11,7 @@ dotfiles/
 └── sketchybar/                → ~/.config/sketchybar
     ├── sketchybarrc
     ├── plugins/*.sh
-    └── helpers/*.swift, *.plist  (compilati da sketchybarrc)
+    └── helpers/*.swift, *.plist, *.js  (compilati o eseguiti da sketchybarrc)
 ```
 
 Le cartelle in `~/.config` sono symlink verso questo repo: le app leggono la config dal percorso
@@ -116,9 +116,9 @@ aerospace config --config-path
 ```
 
 Deve stampare `~/.config/aerospace/aerospace.toml`. In alto dovresti vedere la barra con i
-workspace, l'app attiva, l'uscita e l'ingresso audio, la rete, la batteria, il prossimo evento del
-calendario, l'orologio e, se ci sono aggiornamenti, il loro pallino all'estrema destra, e la finestra
-attiva con il bordo sfumato.
+workspace, l'app attiva, l'uscita e l'ingresso audio, la rete, la batteria, l'uso di Claude, il
+prossimo evento del calendario, l'orologio e, se ci sono aggiornamenti, il loro pallino all'estrema
+destra, e la finestra attiva con il bordo sfumato.
 
 Se la barra è vuota o mancano i workspace:
 
@@ -126,6 +126,13 @@ Se la barra è vuota o mancano i workspace:
 chmod +x ~/Developer/dotfiles/sketchybar/sketchybarrc ~/Developer/dotfiles/sketchybar/plugins/*.sh
 sketchybar --reload
 ```
+
+Ogni workspace mostra il numero seguito dall'icona di ciascuna delle sue finestre, la stessa del
+Dock: tre finestre di VS Code sono tre icone. Quello attivo è evidenziato insieme alle sue icone, e
+quelli vuoti non compaiono. Un clic sul numero apre il workspace, un clic su un'icona porta a quella
+finestra. Le app senza bundle id mostrano l'iniziale del nome. Le icone si aggiornano quando una
+finestra si apre, si chiude o cambia workspace: per questo `aerospace.toml` avvisa SketchyBar a ogni
+cambio di focus (`on-focus-changed`) e con `alt-shift-1` … `alt-shift-9`.
 
 La rete mostra il nome del Wi-Fi, `Ethernet` quando c'è un cavo, `Non connesso` (giallo) o
 `Wi-Fi off` (rosso). Da macOS 14.4 il nome del Wi-Fi è oscurato in `networksetup`, `ipconfig` e
@@ -157,6 +164,16 @@ Se l'hai negato, al posto dell'evento compare `Nessun accesso al calendario` in 
 SketchyBar Calendar in Impostazioni di Sistema → Privacy e sicurezza → Calendari, poi
 `sketchybar --reload`.
 
+I testi seguono la lingua del Mac (italiano o inglese, per le altre lingue inglese) e gli orari il
+formato della sua regione, 12 o 24 ore compreso. Anche l'orologio mostra il giorno della settimana
+nella lingua del Mac (`mer 30/09  14:30`).
+
+Un clic sull'orologio apre il mese corrente, con oggi evidenziato, la settimana che parte dal
+giorno scelto in Impostazioni di Sistema → Generali → Lingua e Zona e i weekend più tenui; un clic
+sul mese apre Calendario. SketchyBar non sa disporre gli elementi di un popup in una griglia, quindi
+il mese è un'immagine che `helpers/calendar_month.swift` disegna ogni volta che si apre, con i pixel
+del monitor su cui si apre (compilato da `sketchybarrc`, non è nel repo).
+
 Quando uno dei pacchetti del `Brewfile` ha una nuova versione su Homebrew, all'estrema destra
 compare un pallino rosso con quanti sono. Un clic apre l'elenco con la versione installata e quella
 nuova (`1.8.4 → 1.9.0`), un clic su un pacchetto lo aggiorna e, se sono più di uno, c'è anche
@@ -178,6 +195,22 @@ schermo le finestre dei workspace nascosti, poi lo chiude e lo riapre: ogni fine
 workspace visibile sul suo monitor, tranne le app con una regola `on-window-detected`, che tornano
 nel loro. Le notifiche le manda `terminal-notifier`: alla prima macOS chiede il permesso, scegli
 *Consenti*.
+
+La scintilla arancione di Claude mostra quanto hai usato dei limiti del tuo piano, la sessione di
+5 ore e la settimana (`50% · 39%`), in giallo dal 75% e in rosso dal 90%. Un clic apre il nome,
+l'email e il piano dell'account e, per ciascun limite, la percentuale, una barra e quanto manca al
+reset (`Reset tra 2 h 57 min · 01:10`). In fondo c'è *Esci*, che vuole un secondo clic prima di
+scollegare l'account. Senza un account c'è solo *Accedi*: apre la pagina di accesso di Claude nel
+browser e, finito l'accesso, l'elemento si aggiorna; se non riesce compare una notifica, e un clic
+apre l'output di claude (`~/Library/Logs/sketchybar-claude.log`). I numeri sono quelli di `/usage`
+di Claude Code: `plugins/claude.sh` li chiede a `claude -p` senza mandare messaggi, quindi senza
+consumare crediti, ogni 5 minuti, al risveglio e a ogni clic (in alto a destra compare
+*Aggiornamento…* finché non arrivano), e Claude Code rinnova da solo il login scaduto. Claude Code
+chiede i numeri al server solo se quelli che ha sono più vecchi di un minuto. Se una lettura non riesce, per esempio senza rete, restano gli ultimi numeri in
+grigio fino alla successiva. Serve [Claude Code](https://code.claude.com/docs) (lo cerca anche fuori dal
+`PATH`: `~/.local/bin`, Homebrew, nvm) e `jq`, che macOS ha da Sequoia. L'icona è quella della
+barra dei menu dell'app Claude, che `helpers/claude_icon.js` colora in `helpers/claude_icon.png`
+(non è nel repo); senza l'app al suo posto c'è ✻.
 
 ## Da adattare al nuovo Mac
 
