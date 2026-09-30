@@ -10,6 +10,7 @@ BASE=0xe61e1e2e
 CRUST=0xff11111b
 SURFACE=0xff313244
 TEXT=0xffcdd6f4
+SUBTEXT=0xffa6adc8
 RED=0xfff38ba8
 
 ##### Bar Appearance #####
@@ -183,7 +184,8 @@ claude=(
   update_freq=300
   script="$PLUGIN_DIR/claude.sh"
   popup.align=right
-  popup.height=24
+  # No minimum: claude.sh gives each row of the popup its own height
+  popup.height=0
   popup.blur_radius=20
   popup.background.color=$BASE
   popup.background.corner_radius=10
@@ -212,15 +214,40 @@ AUDIO_HELPER="$CONFIG_DIR/helpers/audio_devices"
 if [ ! -x "$AUDIO_HELPER" ] || [ "$AUDIO_HELPER.swift" -nt "$AUDIO_HELPER" ]; then
   swiftc -O "$AUDIO_HELPER.swift" -o "$AUDIO_HELPER"
 fi
+# SF Symbols has no Galaxy Buds: helpers/galaxy_buds_icon.js makes their icon out of a photo,
+# helpers/galaxy_buds_photo.png, which isn't in the repo (it's Samsung's). Without it audio.sh
+# shows them as headphones
+GALAXY_BUDS_PHOTO="$CONFIG_DIR/helpers/galaxy_buds_photo.png"
+GALAXY_BUDS_ICON="$CONFIG_DIR/helpers/galaxy_buds_icon.png"
+if [ -f "$GALAXY_BUDS_PHOTO" ] && { [ "$GALAXY_BUDS_PHOTO" -nt "$GALAXY_BUDS_ICON" ] \
+   || [ "$CONFIG_DIR/helpers/galaxy_buds_icon.js" -nt "$GALAXY_BUDS_ICON" ]; }; then
+  osascript -l JavaScript "$CONFIG_DIR/helpers/galaxy_buds_icon.js" "$GALAXY_BUDS_PHOTO" "$GALAXY_BUDS_ICON"
+fi
 sketchybar --add event audio_device_change
 pkill -x audio_devices
 "$AUDIO_HELPER" watch > /dev/null 2>&1 &
 
-# audio.sh updates both items, since the output hides its name when the input is the same device
-sketchybar --add item audio_input right \
+# audio.sh updates all four items, since the output hides its name and battery when the input
+# is the same device; update_freq keeps the battery of Bluetooth devices up to date.
+# The battery follows the name like a detail of the device: smaller and dimmer, and the negative
+# padding cancels most of the space after the name (label.padding_right + padding_right).
+# audio.sh sets the icon color, red when the battery is low
+audio_battery=(
+  "${with_icon[@]}"
+  drawing=off
+  padding_left=-10
+  icon.font="SF Pro:Semibold:12.0"
+  label.font="Helvetica Neue:Bold:11.0"
+  label.color=$SUBTEXT
+)
+sketchybar --add item audio_input_battery right \
+           --set audio_input_battery "${audio_battery[@]}" \
+           --add item audio_input right \
            --set audio_input "${with_icon[@]}" \
+           --add item audio_output_battery right \
+           --set audio_output_battery "${audio_battery[@]}" \
            --add item audio_output right \
-           --set audio_output "${with_icon[@]}" script="$PLUGIN_DIR/audio.sh" \
+           --set audio_output "${with_icon[@]}" update_freq=120 script="$PLUGIN_DIR/audio.sh" \
            --subscribe audio_output audio_device_change system_woke
 
 ##### Force all scripts to run the first time #####

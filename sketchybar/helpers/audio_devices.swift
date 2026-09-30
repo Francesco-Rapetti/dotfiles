@@ -1,6 +1,7 @@
 // Default audio devices for SketchyBar (CoreAudio has no command line tool for them)
-//   audio_devices output|input   print "<id>\t<transport>\t<type>\t<name>" of the default device,
-//                                where <id> is the same for the output and input of one device
+//   audio_devices output|input   print "<id>\t<transport>\t<type>\t<name>\t<battery>" of the default device,
+//                                where <id> is the same for the output and input of one device and
+//                                <battery> the percentage of a Bluetooth device (empty when unknown)
 //   audio_devices watch          trigger audio_device_change whenever a default device changes
 // sketchybarrc compiles it with: swiftc -O audio_devices.swift -o audio_devices
 
@@ -63,10 +64,58 @@ func type(_ device: AudioObjectID, _ scope: AudioObjectPropertyScope) -> String 
   return property(device, kAudioDevicePropertyDataSource, scope, initial: UInt32(0)) == 0x6864706E ? "headphones" : "unknown"
 }
 
+func run(_ path: String, _ arguments: String...) -> Data {
+  let process = Process()
+  let pipe = Pipe()
+  process.executableURL = URL(fileURLWithPath: path)
+  process.arguments = arguments
+  process.standardOutput = pipe
+  process.standardError = FileHandle.nullDevice
+  guard (try? process.run()) != nil else { return Data() }
+  let data = pipe.fileHandleForReading.readDataToEndOfFile()
+  process.waitUntilExit()
+  return data
+}
+
+// CoreAudio doesn't know the battery of Bluetooth devices. system_profiler reports it for Apple
+// earbuds, one per side (and the case): the lower of the two sides in use. The id of a Bluetooth
+// device is its address ("40-70-F5-CF-79-F1")
+func earbudsBattery(_ id: String) -> Int? {
+  let address = id.uppercased().replacingOccurrences(of: "-", with: ":")
+  guard let json = try? JSONSerialization.jsonObject(with: run("/usr/sbin/system_profiler", "SPBluetoothDataType", "-json")) as? [String: Any],
+        let controllers = json["SPBluetoothDataType"] as? [[String: Any]] else { return nil }
+  for controller in controllers {
+    for entry in controller["device_connected"] as? [[String: [String: Any]]] ?? [] {
+      for device in entry.values where (device["device_address"] as? String)?.uppercased() == address {
+        let level = { (key: String) in (device[key] as? String).flatMap { Int($0.dropLast()) } }
+        let sides = [level("device_batteryLevelLeft"), level("device_batteryLevelRight")].compactMap { $0 }
+        return sides.min() ?? level("device_batteryLevelMain")
+      }
+    }
+  }
+  return nil
+}
+
+// Other headphones and headsets (e.g. over the HFP battery indicator) only show up among the
+// accessories of pmset, by name: " -<name> (id=570889427)\t98%; discharging present: true"
+func accessoryBattery(_ name: String) -> Int? {
+  let prefix = " -\(name) (id="
+  let lines = String(decoding: run("/usr/bin/pmset", "-g", "accps"), as: UTF8.self).split(separator: "\n")
+  guard let line = lines.first(where: { $0.hasPrefix(prefix) }),
+        let percent = line.split(separator: "\t").dropFirst().first?.split(separator: "%").first else { return nil }
+  return Int(percent)
+}
+
+func battery(_ id: String, _ name: String) -> String {
+  (earbudsBattery(id) ?? accessoryBattery(name)).map(String.init) ?? ""
+}
+
 func printDefault(_ selector: AudioObjectPropertySelector, _ scope: AudioObjectPropertyScope) {
   guard let device = property(system, selector, initial: AudioObjectID(kAudioObjectUnknown)),
         device != kAudioObjectUnknown else { exit(1) }
-  print("\(id(device))\t\(transport(device))\t\(type(device, scope))\t\(string(device, kAudioObjectPropertyName) ?? "")")
+  let id = id(device), transport = transport(device), name = string(device, kAudioObjectPropertyName) ?? ""
+  let battery = transport == "bluetooth" ? battery(id, name) : ""
+  print("\(id)\t\(transport)\t\(type(device, scope))\t\(name)\t\(battery)")
 }
 
 func watch() -> Never {
