@@ -32,9 +32,13 @@ Alla fine segui le istruzioni che stampa per aggiungere `brew` al `PATH` (su App
 brew install --cask nikitabobko/tap/aerospace
 brew tap FelixKratz/formulae
 brew install sketchybar borders
+brew install --cask font-sf-pro
 ```
 
-Non serve nessun font aggiuntivo: la barra usa Helvetica Neue, già presente su macOS.
+I testi della barra usano Helvetica Neue, già presente su macOS. Le icone della rete sono
+[SF Symbols](https://developer.apple.com/sf-symbols/) e servono il font SF Pro: il cask è un
+installer `.pkg`, quindi chiede la password di amministratore. Senza SF Pro le icone appaiono come
+riquadri vuoti.
 
 ### 3. Clona il repo
 
@@ -106,7 +110,8 @@ aerospace config --config-path
 ```
 
 Deve stampare `~/.config/aerospace/aerospace.toml`. In alto dovresti vedere la barra con i
-workspace, l'app attiva, la batteria e l'orologio, e la finestra attiva con il bordo sfumato.
+workspace, l'app attiva, la rete, la batteria e l'orologio, e la finestra attiva con il bordo
+sfumato.
 
 Se la barra è vuota o mancano i workspace:
 
@@ -114,6 +119,12 @@ Se la barra è vuota o mancano i workspace:
 chmod +x ~/Developer/dotfiles/sketchybar/sketchybarrc ~/Developer/dotfiles/sketchybar/plugins/*.sh
 sketchybar --reload
 ```
+
+La rete mostra il nome del Wi-Fi, `Ethernet` quando c'è un cavo, `Non connesso` (giallo) o
+`Wi-Fi off` (rosso). Da macOS 14.4 il nome del Wi-Fi è oscurato in `networksetup`, `ipconfig` e
+`system_profiler`: `plugins/network.sh` lo legge dall'ultima scansione salvata nella configurazione
+di sistema. Se un aggiornamento di macOS chiude anche questa strada, al posto del nome compare
+`Wi-Fi`.
 
 ## Da adattare al nuovo Mac
 
