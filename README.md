@@ -9,7 +9,8 @@ dotfiles/
 ├── aerospace/aerospace.toml   → ~/.config/aerospace
 └── sketchybar/                → ~/.config/sketchybar
     ├── sketchybarrc
-    └── plugins/*.sh
+    ├── plugins/*.sh
+    └── helpers/*.swift         (compilati da sketchybarrc)
 ```
 
 Le cartelle in `~/.config` sono symlink verso questo repo: le app leggono la config dal percorso
@@ -24,7 +25,8 @@ standard, ma i file veri stanno qui.
 ```
 
 Alla fine segui le istruzioni che stampa per aggiungere `brew` al `PATH` (su Apple Silicon è in
-`/opt/homebrew/bin`). L'installer porta con sé anche i Command Line Tools, quindi `git`.
+`/opt/homebrew/bin`). L'installer porta con sé anche i Command Line Tools, quindi `git` e
+`swiftc`.
 
 ### 2. Pacchetti
 
@@ -35,7 +37,7 @@ brew install sketchybar borders
 brew install --cask font-sf-pro
 ```
 
-I testi della barra usano Helvetica Neue, già presente su macOS. Le icone della rete sono
+I testi della barra usano Helvetica Neue, già presente su macOS. Le icone di rete e audio sono
 [SF Symbols](https://developer.apple.com/sf-symbols/) e servono il font SF Pro: il cask è un
 installer `.pkg`, quindi chiede la password di amministratore. Senza SF Pro le icone appaiono come
 riquadri vuoti.
@@ -110,8 +112,8 @@ aerospace config --config-path
 ```
 
 Deve stampare `~/.config/aerospace/aerospace.toml`. In alto dovresti vedere la barra con i
-workspace, l'app attiva, la rete, la batteria e l'orologio, e la finestra attiva con il bordo
-sfumato.
+workspace, l'app attiva, l'uscita e l'ingresso audio, la rete, la batteria e l'orologio, e la
+finestra attiva con il bordo sfumato.
 
 Se la barra è vuota o mancano i workspace:
 
@@ -125,6 +127,18 @@ La rete mostra il nome del Wi-Fi, `Ethernet` quando c'è un cavo, `Non connesso`
 `system_profiler`: `plugins/network.sh` lo legge dall'ultima scansione salvata nella configurazione
 di sistema. Se un aggiornamento di macOS chiude anche questa strada, al posto del nome compare
 `Wi-Fi`.
+
+L'audio mostra il dispositivo di uscita e quello di ingresso predefiniti, con un'icona per tipo
+(altoparlanti, cuffie, headset, AirPods, occhiali audio, monitor, AirPlay, microfono). Se sono lo
+stesso dispositivo, per esempio cuffie Bluetooth, compaiono le due icone e il nome una volta sola.
+macOS non ha un comando da terminale per leggerli, quindi `sketchybarrc` compila
+`helpers/audio_devices.swift` al primo avvio (e ogni volta che il sorgente cambia) e lo lascia in
+ascolto per aggiornare la barra appena cambi dispositivo. Il binario compilato non è nel repo. Se
+l'audio non compare, compilalo a mano per vedere l'errore:
+
+```bash
+swiftc -O ~/Developer/dotfiles/sketchybar/helpers/audio_devices.swift -o ~/Developer/dotfiles/sketchybar/helpers/audio_devices
+```
 
 ## Da adattare al nuovo Mac
 
