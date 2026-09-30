@@ -36,6 +36,13 @@ DIGIT_WIDTH=6   # every digit of the badge font, Helvetica Neue Bold 11
 # the popup upgrades only its packages (and the dependencies they need)
 export HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_ENV_HINTS=1 HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1
 
+# SketchyBar ignores SIGCHLD and its scripts inherit that: brew, in Ruby, then gets no exit status
+# from the commands it runs and fails, e.g. brew upgrade in Hardware::CPU.cores.
+# A shell can't restore a signal that was ignored when it started, perl can
+brew() {
+  /usr/bin/perl -e '$SIG{CHLD} = "DEFAULT"; exec @ARGV' brew "$@"
+}
+
 # <formula|cask> <name> for each package of the Brewfile
 brewfile_packages() {
   sed -nE 's/^brew "([^"]+)".*/formula \1/p; s/^cask "([^"]+)".*/cask \1/p' "$BREWFILE"
@@ -237,6 +244,8 @@ upgrade() {
   if [ ${#failed[@]} -gt 0 ]; then
     notify sketchybar-brew-failed "Aggiornamento non riuscito: ${failed[*]}" \
            "Fai clic per vedere l'output di brew" "open '$LOG'"
+  else
+    terminal-notifier -remove sketchybar-brew-failed > /dev/null 2>&1
   fi
   for short in "${upgraded[@]}"; do
     restart_daemon "$short"
@@ -273,7 +282,7 @@ restart_aerospace() {
     sleep 0.2
   done
 
-  terminal-notifier -remove sketchybar-brew-aerospace > /dev/null
+  terminal-notifier -remove sketchybar-brew-aerospace > /dev/null 2>&1
   rm -f "$LOCK"
   sketchybar --trigger brew_update
 }
