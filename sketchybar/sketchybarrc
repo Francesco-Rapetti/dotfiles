@@ -227,8 +227,8 @@ sketchybar --add event audio_device_change
 pkill -x audio_devices
 "$AUDIO_HELPER" watch > /dev/null 2>&1 &
 
-# audio.sh updates all four items, since the output hides its name and battery when the input
-# is the same device; update_freq keeps the battery of Bluetooth devices up to date.
+# audio.sh updates all four items, since the input hides when it is the same device as the
+# output; update_freq keeps the battery of Bluetooth devices up to date.
 # The battery follows the name like a detail of the device: smaller and dimmer, and the negative
 # padding cancels most of the space after the name (label.padding_right + padding_right).
 # audio.sh sets the icon color, red when the battery is low

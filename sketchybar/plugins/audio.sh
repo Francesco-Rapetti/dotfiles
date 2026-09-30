@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 # Default audio output and input: updates audio_output and audio_input, each followed by the
-# battery of the device (audio_output_battery, audio_input_battery) when it has one.
+# battery of the device (audio_output_battery, audio_input_battery) when it has one, or only the
+# output when they are the same device.
 # helpers/audio_devices reports their id, transport, type, name and battery (Bluetooth only);
 # the icons are SF Symbols, except for the Galaxy Buds, which SF Symbols doesn't have: an image
 # that sketchybarrc makes out of a photo with helpers/galaxy_buds_icon.js
@@ -59,10 +60,10 @@ icon_for() {
 }
 
 # icon_settings <icon>: sets ICON to the icon settings of an audio item, for an SF Symbol or the
-# image. The photo cropped to 375 × 291 px, at 0.045: about as big as the AirPods symbols. The image ignores the padding
-# of the icon and starts at its left edge: image.padding_left leaves the same space as before the
-# symbols (icon.padding_left plus their origin), in an icon as wide as that and the image.
-# icon.width=dynamic undoes it
+# image. The photo cropped to 375 × 291 px, at 0.045: about as big as the AirPods symbols. The
+# image ignores the padding of the icon and starts at its left edge: image.padding_left leaves the
+# same space as before the symbols (icon.padding_left plus their origin), in an icon as wide as
+# that and the image. icon.width=dynamic undoes it
 icon_settings() {
   if [ "$1" = galaxy_buds ]; then
     ICON=(icon="" icon.width=25 icon.background.drawing=on icon.background.image="$GALAXY_BUDS_ICON"
@@ -89,26 +90,20 @@ battery_for() {
 IFS=$'\t' read -r OUT_ID OUT_TRANSPORT OUT_TYPE OUT_NAME OUT_BATTERY < <("$CONFIG_DIR/helpers/audio_devices" output)
 IFS=$'\t' read -r IN_ID IN_TRANSPORT IN_TYPE IN_NAME IN_BATTERY < <("$CONFIG_DIR/helpers/audio_devices" input)
 
-# Same device for both (e.g. Bluetooth headphones): the two icons side by side, then one name
-# and one battery. Otherwise the items keep the default padding (4) between them
-if [ "$OUT_ID" = "$IN_ID" ]; then
-  OUT_LABEL=off GAP=0 OUT_BATTERY=""
-else
-  OUT_LABEL=on GAP=4
-fi
+# Same device for both (e.g. Bluetooth headphones): only the output, whose icon is the device
+# itself, while the input one would be a headset or a microphone
+[ "$OUT_ID" = "$IN_ID" ] && IN_ID=""
 
 output=(drawing=off)
 if [ -n "$OUT_ID" ]; then
   icon_settings "$(icon_for output "$OUT_TRANSPORT" "$OUT_TYPE" "$OUT_NAME")"
-  output=(drawing=on "${ICON[@]}"
-          label="$OUT_NAME" label.drawing=$OUT_LABEL padding_right=$GAP)
+  output=(drawing=on "${ICON[@]}" label="$OUT_NAME")
 fi
 
 input=(drawing=off)
 if [ -n "$IN_ID" ]; then
   icon_settings "$(icon_for input "$IN_TRANSPORT" "$IN_TYPE" "$IN_NAME")"
-  input=(drawing=on "${ICON[@]}"
-         label="$IN_NAME" padding_left=$GAP)
+  input=(drawing=on "${ICON[@]}" label="$IN_NAME")
 fi
 
 [ -n "$OUT_ID" ] || OUT_BATTERY=""

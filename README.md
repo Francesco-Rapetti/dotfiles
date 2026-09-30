@@ -142,8 +142,7 @@ di sistema. Se un aggiornamento di macOS chiude anche questa strada, al posto de
 
 L'audio mostra il dispositivo di uscita e quello di ingresso predefiniti, con un'icona per tipo
 (altoparlanti, cuffie, headset, AirPods, Galaxy Buds4 Pro, occhiali audio, monitor, AirPlay,
-microfono). Se sono lo stesso dispositivo, per esempio cuffie Bluetooth, compaiono le due icone e il
-nome una volta sola. Dopo il nome dei dispositivi Bluetooth c'è la batteria, se macOS la conosce:
+microfono). Se sono lo stesso dispositivo, per esempio cuffie Bluetooth, compare solo quello di uscita. Dopo il nome dei dispositivi Bluetooth c'è la batteria, se macOS la conosce:
 un'icona col livello (rossa dal 20% in giù) e la percentuale, più piccole e grigie del nome e
 aggiornate ogni due minuti. Per gli auricolari conta il lato più scarico.
 Le icone sono simboli SF, tranne quella delle Galaxy Buds (riconosciute da `Buds4 Pro` nel nome),
