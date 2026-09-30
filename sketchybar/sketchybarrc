@@ -7,8 +7,11 @@ PLUGIN_DIR="$CONFIG_DIR/plugins"
 
 # Catppuccin Mocha (same palette as the borders gradient in aerospace.toml)
 BASE=0xe61e1e2e
+CRUST=0xff11111b
+SURFACE=0xff313244
 TEXT=0xffcdd6f4
 SKY=0xff89dceb
+RED=0xfff38ba8
 
 ##### Bar Appearance #####
 sketchybar --bar position=top height=32 color=$BASE blur_radius=20 \
@@ -67,6 +70,39 @@ sketchybar --add item front_app left \
            --subscribe front_app front_app_switched
 
 ##### Right Items #####
+# Updates for the packages in ../Brewfile: a badge with how many, hidden when there are none.
+# A click lists them, a click on one upgrades it; until AeroSpace restarts on a new version the
+# list also has a row that restarts it. brew update runs hourly, on wake and on reload;
+# brew_update refreshes the list without it, e.g. once an upgrade is done
+brew=(
+  drawing=off
+  update_freq=3600
+  script="$PLUGIN_DIR/brew.sh"
+  label.font="Helvetica Neue:Bold:11.0"
+  label.color=$CRUST
+  label.width=18
+  # brew.sh centers the number with label.padding_left: label.align=center measures the digits by
+  # their ink but draws them from their origin, which moves each one by a different amount.
+  # y_offset lifts it by the room the line keeps for descenders, which digits don't have
+  label.align=left
+  label.padding_right=0
+  label.y_offset=1
+  background.color=$RED
+  background.corner_radius=9
+  background.height=18
+  popup.align=right
+  popup.height=28
+  popup.blur_radius=20
+  popup.background.color=$BASE
+  popup.background.corner_radius=10
+  popup.background.border_width=2
+  popup.background.border_color=$SURFACE
+)
+sketchybar --add event brew_update \
+           --add item brew right \
+           --set brew "${brew[@]}" \
+           --subscribe brew brew_update system_woke mouse.clicked mouse.exited.global
+
 sketchybar --add item clock right \
            --set clock update_freq=10 script="$PLUGIN_DIR/clock.sh"
 
