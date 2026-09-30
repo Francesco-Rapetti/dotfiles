@@ -142,14 +142,22 @@ di sistema. Se un aggiornamento di macOS chiude anche questa strada, al posto de
 
 L'audio mostra il dispositivo di uscita e quello di ingresso predefiniti, con un'icona per tipo
 (altoparlanti, cuffie, headset, AirPods, Galaxy Buds4 Pro, occhiali audio, monitor, AirPlay,
-microfono). Se sono lo stesso dispositivo, per esempio cuffie Bluetooth, compare solo quello di uscita. Dopo il nome dei dispositivi Bluetooth c'è la batteria, se macOS la conosce:
-un'icona col livello (rossa dal 20% in giù) e la percentuale, più piccole e grigie del nome e
-aggiornate ogni due minuti. Per gli auricolari conta il lato più scarico.
-Le icone sono simboli SF, tranne quella delle Galaxy Buds (riconosciute da `Buds4 Pro` nel nome),
-che SF Symbols non ha: `helpers/galaxy_buds_icon.js` la ricava da una foto su sfondo trasparente,
-ritagliata e schiarita perché il corpo nero non sparisca sulla barra scura. La foto è di Samsung,
-quindi non è nel repo: va messa in `sketchybar/helpers/galaxy_buds_photo.png`, altrimenti le Buds
-hanno l'icona delle cuffie.
+microfono); il Mac, gli schermi e gli occhiali audio, che per uscita e ingresso avrebbero lo stesso
+simbolo, hanno il loro con un altoparlante o un microfono. Se sono lo stesso dispositivo, per
+esempio cuffie Bluetooth, compare solo quello di uscita, e se ha i due simboli con l'altoparlante e
+il microfono affiancati. Lo stesso vale per altoparlanti e microfono del Mac, che diventano il Mac
+stesso, con il suo nome: per esempio `MacBook Pro`, la parte comune a `Altoparlanti MacBook Pro` e
+`Microfono MacBook Pro`. Dopo il nome dei dispositivi Bluetooth c'è la batteria, se macOS la
+conosce: un'icona col livello (rossa dal 20% in giù) e la percentuale, più piccole e grigie del nome
+e aggiornate ogni due minuti. Per gli auricolari conta il lato più scarico.
+Le icone sono simboli SF, tranne quelle che SF Symbols non ha, immagini che `sketchybarrc` genera
+quando cambia lo script che le fa. Quelle del Mac, degli schermi e degli occhiali le disegna
+`helpers/audio_icons.js` in `helpers/audio_icons`, dai simboli del dispositivo e dell'altoparlante o
+del microfono. Quella delle Galaxy Buds (riconosciute da `Buds4 Pro` nel nome) la ricava
+`helpers/galaxy_buds_icon.js` da una foto su sfondo trasparente, ritagliata e schiarita perché il
+corpo nero non sparisca sulla barra scura. La foto è di Samsung, quindi né lei né l'icona sono nel
+repo: la foto va messa in `sketchybar/helpers/galaxy_buds_photo.png`, altrimenti le Buds hanno
+l'icona delle cuffie.
 macOS non ha un comando da terminale per leggerli, quindi `sketchybarrc` compila
 `helpers/audio_devices.swift` al primo avvio (e ogni volta che il sorgente cambia) e lo lascia in
 ascolto per aggiornare la barra appena cambi dispositivo. Il binario compilato non è nel repo. Se

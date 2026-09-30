@@ -1,10 +1,13 @@
 // Turns a photo of the Galaxy Buds on a transparent background into the icon of the audio items
 // of SketchyBar, since SF Symbols only has earbuds by Apple and Beats: cropped to the buds, gray
-// and lighter, since their black body would vanish on the dark bar
+// and lighter, since their black body would vanish on the dark bar, and 13 pt tall like the SF
+// Symbols of the other audio icons at 4 px per point, as audio.sh expects its images
 // Usage: osascript -l JavaScript galaxy_buds_icon.js <input png> <output png>
 
 ObjC.import('AppKit')
 ObjC.import('CoreImage')
+
+const HEIGHT = 13 * 4
 
 // The bounds of the opaque pixels (y down), stepping by 2 px: reading a pixel from JXA is slow
 function opaqueBounds(bitmap) {
@@ -39,6 +42,10 @@ function run(argv) {
   const curve = [[0, 0.5], [0.25, 0.68], [0.5, 0.82], [0.75, 0.93], [1, 1]]
   curve.forEach(([x, y], i) => lighter.setValueForKey($.CIVector.vectorWithXY(x, y), `inputPoint${i}`))
 
-  const bitmap = $.NSBitmapImageRep.alloc.initWithCIImage(lighter.outputImage)
+  const resize = $.CIFilter.filterWithName('CILanczosScaleTransform')
+  resize.setValueForKey(lighter.outputImage, 'inputImage')
+  resize.setValueForKey($.NSNumber.numberWithDouble(HEIGHT / bounds.height), 'inputScale')
+
+  const bitmap = $.NSBitmapImageRep.alloc.initWithCIImage(resize.outputImage)
   bitmap.representationUsingTypeProperties($.NSBitmapImageFileTypePNG, $()).writeToFileAtomically(output, true)
 }
