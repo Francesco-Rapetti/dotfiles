@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 
 # Network: the network item shows the Wi-Fi name, Ethernet, or why there is no connection, and
-# network_vpn, before it in the same pill, the shield and the name of the VPN while one is on.
-# A click on either opens the popup of network: the IP address of the Mac, the public one, the
+# network_vpn, before it in the same pill, the shield while a VPN is on, followed by its name in
+# network_vpn_name, which isn't on the display with the notch (see notch.sh).
+# A click on any of them opens the popup of network: the IP address of the Mac, the public one, the
 # router and the VPN; then Ethernet and Wi-Fi, each with a row that turns it off or on, and the Wi-Fi
 # networks around the Mac, those saved on it first, where a click joins one; last Impostazioni Rete….
 # Since macOS 14.4 only an app that may use Location Services gets the names of the Wi-Fi networks
 # and can join one: helpers/wifi_networks.app, which sketchybarrc starts, triggers
 # wifi_networks_change with them (NETWORKS) whenever they change, and helpers/wifi_networks asks it
 # for a new scan or to join a network, which comes back with the same event (JOINED, RESULT).
-# The item runs this with no arguments, the popup rows with wifi <on|off>, ethernet <on|off>
+# The bar items run this with no arguments, the popup rows with wifi <on|off>, ethernet <on|off>
 # <service>, join <name>, location or settings, or with current
 # The icons are SF Symbols, so they need the SF Pro font (brew install --cask font-sf-pro)
 
@@ -164,14 +165,14 @@ update_bar() {
     ICON=$WIFI_OFF COLOR=$RED LABEL="Wi-Fi off"
   fi
 
-  local vpn=(drawing=off)
+  local vpn=(drawing=off) vpn_name=(drawing=off)
   if [ -n "$VPN_NAME" ]; then
     local name="$VPN_NAME"
     [ ${#name} -gt $VPN_LENGTH ] && name="${name:0:$((VPN_LENGTH - 1))}…"
-    vpn=(drawing=on label="$name")
+    vpn=(drawing=on) vpn_name=(drawing=on label="$name")
   fi
   sketchybar --set network icon="$ICON" icon.color="$COLOR" label="$LABEL" \
-             --set network_vpn "${vpn[@]}"
+             --set network_vpn "${vpn[@]}" --set network_vpn_name "${vpn_name[@]}"
 }
 
 # Width in points of the widest text of each group, e.g. text_widths HelveticaNeue-Bold 13 <text>...
@@ -529,6 +530,6 @@ case "$SENDER" in
     fi
     update
     ;;
-  # wifi_change, system_woke, the update_freq and the first run. network_vpn only opens the popup
+  # wifi_change, system_woke, the update_freq and the first run. The VPN items only open the popup
   *) [ "$NAME" = network ] && update ;;
 esac

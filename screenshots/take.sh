@@ -16,7 +16,7 @@ REPO="$(dirname "$DIR")"
 MOCK="$DIR/mock"
 CAPTURE="$DIR/capture"
 
-SHOTS=(bar apple workspaces home system claude audio network battery calendar clock brew)
+SHOTS=(bar notch apple workspaces home system claude audio network battery calendar clock brew)
 # The items of the two sides of the bar, for the shot of the whole bar
 LEFT=(apple spaces front_app)
 RIGHT=(home_printer home system claude audio connection battery calendar clock brew)
@@ -150,7 +150,9 @@ SYSTEM=(
 # call and the link to Calendar, separated by \x1f
 CALENDAR=(
   KIND=upcoming
-  LABEL="14:30  Revisione design · tra 20 min"
+  TIME=14:30
+  MINUTES=20
+  LABEL="Revisione design · tra 20 min"
   EVENTS=$'allday\x1fTutto il giorno\x1fCompleanno di Luca\x1f\x1fical://ekevent/1\npast\x1f09:30 – 10:00\x1fStandup\x1fhttps://meet.google.com/abc-defg-hij\x1fical://ekevent/2\npast\x1f12:30 – 13:30\x1fPranzo con Giulia\x1f\x1fical://ekevent/3\nupcoming\x1f14:30 – 15:30\x1fRevisione design\x1fhttps://meet.google.com/xyz-abcd-efg\x1fical://ekevent/4\nupcoming\x1f18:00 – 19:00\x1fPalestra\x1f\x1fical://ekevent/5'
 )
 
@@ -161,27 +163,37 @@ WIFI=(
   PERMISSION=
 )
 
-# Every item with its made-up data, as after the first run of each plugin. The bar stops updating
-# first, once the runs it has started are over
+# Every item with its made-up data, as after the first run of each plugin, and on every display all
+# of them, as on one without a notch. The bar stops updating first, once the runs it has started are
+# over
 mock_bar() {
   sketchybar --set '/.*/' updates=off
   settle '/plugins/[a-z_]*\.sh'
+  run notch notch forced
   run aerospace aerospace forced
   run front_app front_app front_app_switched INFO=Safari
   run home home forced
-  run system cpu system_stats_change "${SYSTEM[@]}"
+  run system ram system_stats_change "${SYSTEM[@]}"
   run claude claude claude_update
   run audio audio_output forced
   run network network wifi_networks_change "${WIFI[@]}"
   run battery battery forced
-  run calendar calendar calendar_change "${CALENDAR[@]}"
+  run calendar calendar_time calendar_change "${CALENDAR[@]}"
   run clock clock routine
   run brew brew brew_update
   settle "$CONFIG/plugins/"
 }
 
-# The shots: the whole bar, its two sides one next to the other, then each item with its popup
+# The shots: the whole bar, its two sides one next to the other, the right side on a display with
+# a notch, which for it every display has, then each item with its popup
 shot_bar() { capture bar $(rects "${LEFT[@]}") $(rects "${RIGHT[@]}"); }
+shot_notch() {
+  run notch notch forced MOCK_NOTCH=1
+  capture notch $(rects "${RIGHT[@]}")
+  local status=$?
+  run notch notch forced
+  return $status
+}
 shot_apple() {
   run apple apple mouse.clicked
   run apple apple.recent mouse.clicked -- recent
@@ -189,7 +201,7 @@ shot_apple() {
 }
 shot_workspaces() { snap workspaces "" spaces front_app; }
 shot_home() { snap home home home_printer home; }
-shot_system() { snap system cpu system; }
+shot_system() { snap system system system; }
 shot_claude() { snap claude claude claude; }
 shot_audio() { snap audio audio_output audio; }
 shot_network() {

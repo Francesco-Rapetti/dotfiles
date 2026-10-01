@@ -1,9 +1,11 @@
 // Next calendar event of the day for SketchyBar
 //   calendar_events <sketchybar path>   trigger calendar_change with the event to show, and again
 //                                       whenever it changes: KIND (upcoming, ongoing, allday, none
-//                                       or denied) and LABEL, the text for the bar, with EVENTS,
-//                                       all the events of the day for the popup of calendar.sh, when
-//                                       they change: the countdown of LABEL changes every minute
+//                                       or denied), TIME, the time the event starts, MINUTES, those
+//                                       left until then for an upcoming one, and LABEL, the rest of
+//                                       the text for the bar, with EVENTS, all the events of the day
+//                                       for the popup of calendar.sh, when they change: the
+//                                       countdown of LABEL changes every minute
 // The texts are in the language of the Mac, with the times in the format of its region
 // macOS grants calendar access to the app that asks for it, and a process started by sketchybar
 // would ask on behalf of AeroSpace: sketchybarrc builds this into calendar_events.app, with
@@ -40,10 +42,15 @@ func time(_ date: Date) -> String {
   date.formatted(date: .omitted, time: .shortened)
 }
 
-// e.g. 20 min, 1 h or 1 h 20 min, rounded up to the minute: at 9:29 an event at 9:30 is 1 min away,
-// and one that ends at 9:30 has 1 min left
+// Rounded up to the minute: at 9:29 an event at 9:30 is 1 min away, and one that ends at 9:30 has
+// 1 min left
+func minutesLeft(until date: Date, from now: Date) -> Int {
+  Int((date.timeIntervalSince(now) / 60).rounded(.up))
+}
+
+// e.g. 20 min, 1 h or 1 h 20 min
 func timeLeft(until date: Date, from now: Date) -> String {
-  let (hours, minutes) = Int((date.timeIntervalSince(now) / 60).rounded(.up)).quotientAndRemainder(dividingBy: 60)
+  let (hours, minutes) = minutesLeft(until: date, from: now).quotientAndRemainder(dividingBy: 60)
   if hours == 0 { return "\(minutes) min" }
   return minutes == 0 ? "\(hours) h" : "\(hours) h \(minutes) min"
 }
@@ -93,7 +100,7 @@ func list(_ events: [EKEvent], _ now: Date) -> String {
   }.joined(separator: "\n")
 }
 
-// KIND and LABEL, and EVENTS
+// KIND, TIME, MINUTES and LABEL, and EVENTS
 func current() -> (bar: [String], events: String) {
   guard EKEventStore.authorizationStatus(for: .event) == .fullAccess else {
     return (["KIND=denied", "LABEL=\(text.denied)"], "")
@@ -106,7 +113,7 @@ func current() -> (bar: [String], events: String) {
   return (bar(events, now), list(events, now))
 }
 
-// KIND and LABEL
+// KIND, TIME, MINUTES and LABEL
 func bar(_ events: [EKEvent], _ now: Date) -> [String] {
   let timed = events.filter { !$0.isAllDay && $0.endDate > now }
   let next = timed.first { $0.startDate > now }
@@ -114,11 +121,13 @@ func bar(_ events: [EKEvent], _ now: Date) -> [String] {
   if let ongoing = timed.filter({ $0.startDate <= now }).min(by: { $0.endDate < $1.endDate }),
      next.map({ ongoing.endDate <= $0.startDate }) ?? true {
     let left = timeLeft(until: ongoing.endDate, from: now)
-    return ["KIND=ongoing", "LABEL=" + String(format: text.until, title(ongoing), time(ongoing.endDate), left)]
+    return ["KIND=ongoing", "TIME=\(time(ongoing.startDate))",
+            "LABEL=" + String(format: text.until, title(ongoing), time(ongoing.endDate), left)]
   }
   if let next {
     let countdown = String(format: text.countdown, timeLeft(until: next.startDate, from: now))
-    return ["KIND=upcoming", "LABEL=\(time(next.startDate))  \(title(next)) · \(countdown)"]
+    return ["KIND=upcoming", "TIME=\(time(next.startDate))", "MINUTES=\(minutesLeft(until: next.startDate, from: now))",
+            "LABEL=\(title(next)) · \(countdown)"]
   }
   let allDay = events.filter(\.isAllDay)
   if !allDay.isEmpty {

@@ -1,18 +1,31 @@
 #!/usr/bin/env bash
 
 # Next event of the day from the macOS calendars, or today's all-day events once there are no more
-# timed ones. helpers/calendar_events sends it with calendar_change (KIND and LABEL, already in the
-# language of the Mac), with all the events of the day (EVENTS) for the popup when they change, not
-# at each minute of the countdowns of the label. A click opens the popup, the past events
-# dimmed and the one in progress highlighted; a click on an event joins its Google Meet call, shown
-# by the Meet logo of helpers/meet_icon.png, or else shows it in Calendar
-# The calendar item runs this with no arguments, each popup row with the link it opens
+# timed ones. helpers/calendar_events sends it with calendar_change (KIND, TIME, MINUTES and LABEL,
+# already in the language of the Mac), with all the events of the day (EVENTS) for the popup when
+# they change, not at each minute of the countdowns of the label. calendar_time shows the icon and
+# the time the event starts, white, then yellow, orange and red as it comes closer, and in the color
+# of the event in progress in the popup while it is on; calendar_title the rest of the label, but not
+# on the display with the notch (see notch.sh). A click on either opens the popup of the calendar
+# bracket, the past events dimmed and the one in progress highlighted; a click on an event joins its
+# Google Meet call, shown by the Meet logo of helpers/meet_icon.png, or else shows it in Calendar
+# calendar_time and calendar_title run this with no arguments, each popup row with the link it opens
 # The icon is an SF Symbol, so it needs the SF Pro font (brew install --cask font-sf-pro)
 
 CALENDAR=􀉉  # calendar
 MEET_ICON="$CONFIG_DIR/helpers/meet_icon.png"
 
 source "$CONFIG_DIR/colors.sh"
+
+SOON=30      # minutes before the event from which its time turns yellow
+SOONER=15    # orange
+IMMINENT=5   # and red
+
+# calendar_title follows the padding after the label of calendar_time, label.padding_right +
+# padding_right (10): its padding_left leaves two spaces after the time (7) or, after an empty
+# label, only the room after the icon, as in the other items (icon.padding_right + label.padding_left)
+TITLE_AFTER_TIME=-3
+TITLE_AFTER_ICON=-10
 
 FONT="Helvetica Neue:Bold:13.0"  # the default label font
 MIN_WIDTH=220
@@ -119,8 +132,23 @@ render() {
   fi
 }
 
+# time_color: the color of the icon and the time of the event
+time_color() {
+  if [ "$KIND" = ongoing ]; then
+    echo $PRIMARY
+  elif [ "$MINUTES" -le $IMMINENT ]; then
+    echo $RED
+  elif [ "$MINUTES" -le $SOONER ]; then
+    echo $PEACH
+  elif [ "$MINUTES" -le $SOON ]; then
+    echo $YELLOW
+  else
+    echo $TEXT
+  fi
+}
+
 # A popup row: as in a menu, the popup closes and then the link opens
-if [ "$NAME" != calendar ]; then
+if [[ $NAME == calendar.* ]]; then
   case "$SENDER" in
     mouse.entered) sketchybar --set "$NAME" background.color=$HIGHLIGHT ;;
     mouse.exited) sketchybar --set "$NAME" background.color=$TRANSPARENT ;;
@@ -133,17 +161,28 @@ if [ "$NAME" != calendar ]; then
 fi
 
 case "$SENDER" in
-  # Only calendar_change carries the events: the forced update at startup has nothing to show
+  # Only calendar_change carries the events: the forced update at startup has nothing to show.
+  # Without a time the label of calendar_time is empty, not hidden: its padding is the room after
+  # the icon, as in claude.sh
   calendar_change)
     case "$KIND" in
-      upcoming | ongoing | allday) item=(drawing=on icon.color=$TEXT label="$LABEL") ;;
-      denied) item=(drawing=on icon.color=$RED label="$LABEL") ;;
-      *) item=(drawing=off popup.drawing=off) ;;
+      upcoming | ongoing)
+        color=$(time_color)
+        items=(--set calendar_time drawing=on icon.color=$color label="$TIME" label.color=$color
+               --set calendar_title drawing=on label="$LABEL" label.color=$TEXT padding_left=$TITLE_AFTER_TIME)
+        ;;
+      allday | denied)
+        color=$TEXT
+        [ "$KIND" = denied ] && color=$RED
+        items=(--set calendar_time drawing=on icon.color=$color label=""
+               --set calendar_title drawing=on label="$LABEL" label.color=$color padding_left=$TITLE_AFTER_ICON)
+        ;;
+      *) items=(--set calendar_time drawing=off --set calendar_title drawing=off --set calendar popup.drawing=off) ;;
     esac
     if [ -n "${EVENTS+set}" ]; then
-      render --set "$NAME" icon="$CALENDAR" "${item[@]}"
+      render --set calendar_time icon="$CALENDAR" "${items[@]}"
     else
-      sketchybar --set "$NAME" icon="$CALENDAR" "${item[@]}"
+      sketchybar --set calendar_time icon="$CALENDAR" "${items[@]}"
     fi
     ;;
   # Without access to the calendars there are no events: the click opens Calendar
