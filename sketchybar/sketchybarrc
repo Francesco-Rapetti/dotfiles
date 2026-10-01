@@ -351,5 +351,31 @@ sketchybar --add event claude_update \
            --set claude "${claude[@]}" \
            --subscribe claude claude_update system_woke mouse.clicked mouse.exited.global
 
+# CPU, GPU and memory usage, read every 2 seconds. macOS has no command line tool for the GPU, and
+# the CPU needs two readings to count the time it worked between them: a Swift helper (rebuilt
+# when its source changes) reads all three and triggers system_stats_change when one changes, and
+# system.sh, run by the cpu item, updates all three. The labels are as wide as "100%" (the digits
+# of Helvetica Neue are all as wide), so the bar doesn't move when a number gains or loses a digit.
+# The icons are the SF Symbols cpu, cube and memorychip. A click opens Activity Monitor
+STATS_HELPER="$CONFIG_DIR/helpers/system_stats"
+if [ ! -x "$STATS_HELPER" ] || [ "$STATS_HELPER.swift" -nt "$STATS_HELPER" ]; then
+  swiftc -O "$STATS_HELPER.swift" -o "$STATS_HELPER"
+fi
+system_stat=(
+  "${with_icon[@]}"
+  label.width=43  # label.padding_left + 35 + label.padding_right
+  click_script="open -a 'Activity Monitor'"
+)
+sketchybar --add event system_stats_change \
+           --add item ram right \
+           --set ram "${system_stat[@]}" icon=􀫦 \
+           --add item gpu right \
+           --set gpu "${system_stat[@]}" icon=􀐘 \
+           --add item cpu right \
+           --set cpu "${system_stat[@]}" icon=􀫥 script="$PLUGIN_DIR/system.sh" \
+           --subscribe cpu system_stats_change
+pkill -x system_stats
+"$STATS_HELPER" watch > /dev/null 2>&1 &
+
 ##### Force all scripts to run the first time #####
 sketchybar --update

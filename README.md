@@ -116,7 +116,7 @@ aerospace config --config-path
 ```
 
 Deve stampare `~/.config/aerospace/aerospace.toml`. In alto dovresti vedere la barra con il logo
-Apple, i workspace, l'app attiva, l'uso di Claude, l'uscita e l'ingresso audio, la rete, la
+Apple, i workspace, l'app attiva, l'uso di CPU, GPU e memoria, quello di Claude, l'uscita e l'ingresso audio, la rete, la
 batteria, il prossimo evento del calendario, l'orologio e, se ci sono aggiornamenti, il loro pallino
 all'estrema destra, e la finestra attiva con il bordo sfumato.
 
@@ -279,6 +279,17 @@ grigio fino alla successiva. Serve [Claude Code](https://code.claude.com/docs) (
 `PATH`: `~/.local/bin`, Homebrew, nvm) e `jq`, che macOS ha da Sequoia. L'icona è quella della
 barra dei menu dell'app Claude, che `helpers/claude_icon.js` colora in `helpers/claude_icon.png`
 (non è nel repo); senza l'app al suo posto c'è ✻.
+
+Alla sinistra di Claude c'è quanto stanno lavorando la CPU, la GPU e la memoria, ognuna con la sua
+icona (un chip, un cubo, un banco di RAM) e la percentuale, aggiornate ogni 2 secondi. CPU e GPU
+diventano gialle dal 75% e rosse dal 90%. La memoria è la *Memoria utilizzata* di Monitoraggio
+Attività (memoria delle app, wired e compressa) sul totale, e ha il colore della *Pressione
+memoria*, come il suo grafico: macOS tiene la memoria quasi piena di cache e di pagine compresse,
+quindi un 85% bianco è normale, mentre giallo e rosso vogliono dire che inizia a mancare. Un clic
+apre Monitoraggio Attività. macOS non ha un comando da terminale per l'uso della GPU, quindi
+`sketchybarrc` compila `helpers/system_stats.swift` (non è nel repo), che legge i tre valori senza
+permessi di amministratore e avvisa SketchyBar quando cambiano. Se il driver della GPU non ne
+riporta l'uso la GPU non compare; su Apple Silicon c'è sempre.
 
 ## Da adattare al nuovo Mac
 
