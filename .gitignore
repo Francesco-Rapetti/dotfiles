@@ -12,6 +12,9 @@ sketchybar/helpers/galaxy_buds_photo.png
 sketchybar/helpers/meet_icon.png
 sketchybar/helpers/system_stats
 sketchybar/helpers/window_order
+sketchybar/helpers/wifi_networks
+sketchybar/helpers/wifi_networks.app/
+sketchybar/helpers/network_icons/
 sketchybar/helpers/home_assistant
 sketchybar/helpers/home_assistant_icons/
 sketchybar/home_assistant.conf

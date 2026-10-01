@@ -1,0 +1,4 @@
+#!/bin/sh
+
+# helpers/wifi_networks for network.sh: the networks come with wifi_networks_change from take.sh,
+# and asking for a scan or to join one does nothing

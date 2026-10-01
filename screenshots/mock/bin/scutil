@@ -1,8 +1,35 @@
 #!/bin/sh
 
-# scutil for network.sh: connected through the Wi-Fi
+# scutil for network.sh: connected through the Wi-Fi, with a WireGuard VPN on
 
 case "$1" in
-  --nwi) echo "Network interfaces: en0" ;;
+  --nwi)
+    cat <<'NWI'
+Network information
+
+IPv4 network interface information
+   utun4 : flags      : 0x5 (IPv4,DNS)
+           address    : 10.8.0.2
+           VPN server : 198.51.100.7
+           reach      : 0x00000003 (Reachable,Transient Connection)
+     en0 : flags      : 0x5 (IPv4,DNS)
+           address    : 192.168.1.23
+           reach      : 0x00000002 (Reachable)
+
+   REACH : flags 0x00000003 (Reachable,Transient Connection)
+
+IPv6 network interface information
+   No IPv6 states found
+
+
+   REACH : flags 0x00000000 (Not Reachable)
+
+Network interfaces: utun4 en0
+NWI
+    ;;
+  --nc)
+    echo 'Available network connection services in the current set (*=enabled):'
+    echo '* (Connected)      00000000-0000-0000-0000-000000000004 VPN (com.wireguard.macos) "Lavoro"                         [VPN/WireGuard]'
+    ;;
   *) exec /usr/sbin/scutil "$@" ;;
 esac

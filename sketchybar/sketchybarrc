@@ -262,8 +262,10 @@ if [ "$CONFIG_DIR/helpers/battery_icons.js" -nt "$BATTERY_ICONS/plug_text.png" ]
   osascript -l JavaScript "$CONFIG_DIR/helpers/battery_icons.js" "$BATTERY_ICONS" \
             text=CDD6F4 green=A6E3A1 yellow=F9E2AF
 fi
+# padding_left=8: the connection bracket is on its left
 battery=(
   "${icon_pill[@]}"
+  padding_left=8
   script="$PLUGIN_DIR/battery.sh"
   "${popup[@]}"
   popup.align=right
@@ -278,13 +280,64 @@ sketchybar --add event battery_change \
 pkill -x battery_charge
 "$BATTERY_HELPER" watch > /dev/null 2>&1 &
 
-# wifi_change fires whenever the primary connection changes (Wi-Fi or Ethernet);
-# update_freq catches the rest, e.g. Wi-Fi turned on without joining a network.
-# padding_left=8: the audio bracket is on its left
-sketchybar --add item network right \
-           --set network "${icon_pill[@]}" padding_left=8 update_freq=30 \
-                         script="$PLUGIN_DIR/network.sh" \
-           --subscribe network wifi_change system_woke
+# The connection: the Wi-Fi name, Ethernet, or why there is none, and after it, in the same pill,
+# the shield and the name of the VPN while one is on. A click on either opens the IP address of the
+# Mac, the public one, the router and the VPN, then the rows that turn Ethernet and the Wi-Fi off or
+# on and the Wi-Fi networks around the Mac, where a click joins one.
+# macOS gives the names of the networks only to an app that may use Location Services, which also
+# joins them: as for the calendar, the helper is built into an app of its own, and started with
+# `open`. It keeps running, since the permission comes a few seconds after the app asks for it, and
+# triggers wifi_networks_change whenever the networks change; the same helper outside the app asks
+# it to look for networks or to join one (helpers/wifi_networks.swift). It is started without the
+# shell's PATH, hence the path to sketchybar. The icons of the networks are the wifi SF Symbol with
+# one, two or three bars, which helpers/network_icons.js draws into helpers/network_icons.
+# wifi_change fires whenever the primary connection changes (Wi-Fi or Ethernet); update_freq
+# catches the rest, e.g. a VPN turned on or off
+WIFI_HELPER="$CONFIG_DIR/helpers/wifi_networks"
+WIFI_APP="$WIFI_HELPER.app"
+if [ ! -x "$WIFI_HELPER" ] || [ "$WIFI_HELPER.swift" -nt "$WIFI_HELPER" ] || [ "$WIFI_HELPER.plist" -nt "$WIFI_HELPER" ]; then
+  mkdir -p "$WIFI_APP/Contents/MacOS"
+  cp "$WIFI_HELPER.plist" "$WIFI_APP/Contents/Info.plist"
+  swiftc -O "$WIFI_HELPER.swift" -o "$WIFI_HELPER"
+  cp "$WIFI_HELPER" "$WIFI_APP/Contents/MacOS/wifi_networks"
+  codesign --force --sign - "$WIFI_APP"
+fi
+NETWORK_ICONS="$CONFIG_DIR/helpers/network_icons"
+if [ "$NETWORK_ICONS.js" -nt "$NETWORK_ICONS/wifi_3.png" ]; then
+  osascript -l JavaScript "$NETWORK_ICONS.js" "$NETWORK_ICONS" ${TEXT#0xff}
+fi
+network=(
+  "${with_icon[@]}"
+  update_freq=30
+  script="$PLUGIN_DIR/network.sh"
+  "${popup[@]}"
+  popup.align=left
+  # No minimum: network.sh gives each row of the popup its own height
+  popup.height=0
+)
+vpn=(
+  "${with_icon[@]}"
+  drawing=off
+  icon=􀞚  # lock.shield.fill
+  icon.color=$GREEN
+  script="$PLUGIN_DIR/network.sh"
+)
+# Two brackets side by side would touch: connection.gap keeps the audio one 8 away, as the other
+# components
+sketchybar --add event wifi_networks_change \
+           --add item network_vpn right \
+           --set network_vpn "${vpn[@]}" \
+           --subscribe network_vpn mouse.clicked \
+           --add item network right \
+           --set network "${network[@]}" \
+           --subscribe network wifi_change wifi_networks_change system_woke \
+                               mouse.clicked mouse.exited.global \
+           --add bracket connection network network_vpn \
+           --set connection "${pill[@]}" \
+           --add item connection.gap right \
+           --set connection.gap label.drawing=off padding_left=0 padding_right=8
+pkill -x wifi_networks
+open -g -n "$WIFI_APP" --args watch "$(command -v sketchybar)"
 
 # Default audio output and input. CoreAudio has no command line tool, so a Swift helper
 # (rebuilt when its source changes) reads, lists and sets the devices and their volume and, in
