@@ -280,10 +280,11 @@ sketchybar --add event battery_change \
 pkill -x battery_charge
 "$BATTERY_HELPER" watch > /dev/null 2>&1 &
 
-# The connection: the Wi-Fi name, Ethernet, or why there is none, and after it, in the same pill,
-# the shield and the name of the VPN while one is on. A click on either opens the IP address of the
-# Mac, the public one, the router and the VPN, then the rows that turn Ethernet and the Wi-Fi off or
-# on and the Wi-Fi networks around the Mac, where a click joins one.
+# The connection: the Wi-Fi name, Ethernet, or why there is none, and before it, in the same pill,
+# the shield and the name of the VPN while one is on, as macOS puts the VPN before the Wi-Fi.
+# A click on either opens the IP address of the Mac, the public one, the router and the VPN, then
+# the rows that turn Ethernet and the Wi-Fi off or on and the Wi-Fi networks around the Mac, where
+# a click joins one.
 # macOS gives the names of the networks only to an app that may use Location Services, which also
 # joins them: as for the calendar, the helper is built into an app of its own, and started with
 # `open`. It keeps running, since the permission comes a few seconds after the app asks for it, and
@@ -311,7 +312,9 @@ network=(
   update_freq=30
   script="$PLUGIN_DIR/network.sh"
   "${popup[@]}"
-  popup.align=left
+  # On the right like the other items on the right of the bar, so that it doesn't leave the screen:
+  # network is the last item of the pill
+  popup.align=right
   # No minimum: network.sh gives each row of the popup its own height
   popup.height=0
 )
@@ -325,14 +328,14 @@ vpn=(
 # Two brackets side by side would touch: connection.gap keeps the audio one 8 away, as the other
 # components
 sketchybar --add event wifi_networks_change \
-           --add item network_vpn right \
-           --set network_vpn "${vpn[@]}" \
-           --subscribe network_vpn mouse.clicked \
            --add item network right \
            --set network "${network[@]}" \
            --subscribe network wifi_change wifi_networks_change system_woke \
                                mouse.clicked mouse.exited.global \
-           --add bracket connection network network_vpn \
+           --add item network_vpn right \
+           --set network_vpn "${vpn[@]}" \
+           --subscribe network_vpn mouse.clicked \
+           --add bracket connection network_vpn network \
            --set connection "${pill[@]}" \
            --add item connection.gap right \
            --set connection.gap label.drawing=off padding_left=0 padding_right=8
