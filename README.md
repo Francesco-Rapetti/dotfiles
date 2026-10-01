@@ -115,10 +115,10 @@ open -a AeroSpace
 aerospace config --config-path
 ```
 
-Deve stampare `~/.config/aerospace/aerospace.toml`. In alto dovresti vedere la barra con i
-workspace, l'app attiva, l'uscita e l'ingresso audio, la rete, la batteria, l'uso di Claude, il
-prossimo evento del calendario, l'orologio e, se ci sono aggiornamenti, il loro pallino all'estrema
-destra, e la finestra attiva con il bordo sfumato.
+Deve stampare `~/.config/aerospace/aerospace.toml`. In alto dovresti vedere la barra con il logo
+Apple, i workspace, l'app attiva, l'uso di Claude, l'uscita e l'ingresso audio, la rete, la
+batteria, il prossimo evento del calendario, l'orologio e, se ci sono aggiornamenti, il loro pallino
+all'estrema destra, e la finestra attiva con il bordo sfumato.
 
 Se la barra è vuota o mancano i workspace:
 
@@ -127,12 +127,36 @@ chmod +x ~/Developer/dotfiles/sketchybar/sketchybarrc ~/Developer/dotfiles/sketc
 sketchybar --reload
 ```
 
+Il logo Apple sostituisce quello della barra dei menu, che SketchyBar copre: un clic apre gli stessi
+comandi, con i testi di macOS (*Informazioni su questo Mac*, *Impostazioni di Sistema…*,
+*App Store…*, *Elementi recenti*, *Uscita forzata…*, *Standby*, *Riavvia…*, *Spegni…*,
+*Blocca schermo*, *Esegui il logout da …*) e le loro scorciatoie. Fanno quello che fa il menu vero:
+riavvio, spegnimento e logout chiedono conferma con la finestra di macOS, che li esegue da sola dopo
+un minuto. Accanto a Impostazioni di Sistema e all'App Store c'è il numero degli avvisi e degli
+aggiornamenti, lo stesso del Dock, e con aggiornamenti l'App Store si apre su quelli. *Elementi
+recenti* si apre dentro il menu, sotto la sua riga, con le app, i documenti e i server recenti e
+*Cancella menu*: un sottomenu accanto si chiuderebbe appena ci porti sopra il mouse. macOS non ha un
+comando da terminale per gli elementi recenti e per bloccare lo schermo, quindi `sketchybarrc`
+compila `helpers/apple_menu.swift` (non è nel repo). La prima volta che usi *Uscita forzata…*,
+*Riavvia…*, *Spegni…* o il logout macOS potrebbe chiedere di consentire a SketchyBar di controllare
+loginwindow: scegli *Consenti*.
+
 Ogni workspace mostra il numero seguito dall'icona di ciascuna delle sue finestre, la stessa del
 Dock: tre finestre di VS Code sono tre icone. Quello attivo è evidenziato insieme alle sue icone, e
-quelli vuoti non compaiono. Un clic sul numero apre il workspace, un clic su un'icona porta a quella
-finestra. Le app senza bundle id mostrano l'iniziale del nome. Le icone si aggiornano quando una
-finestra si apre, si chiude o cambia workspace: per questo `aerospace.toml` avvisa SketchyBar a ogni
-cambio di focus (`on-focus-changed`) e con `alt-shift-1` … `alt-shift-9`.
+quelli vuoti non compaiono; la finestra attiva ha un riquadro più scuro dietro la sua icona. Un clic
+sul numero apre il workspace, un clic su un'icona porta a quella finestra. Le app senza bundle id
+mostrano l'iniziale del nome. Le icone si aggiornano quando una finestra si apre, si chiude o cambia
+workspace: per questo `aerospace.toml` avvisa SketchyBar a ogni cambio di focus (`on-focus-changed`)
+e con `alt-shift-1` … `alt-shift-9`.
+
+Le icone seguono l'ordine delle finestre sullo schermo, da sinistra a destra e, in una colonna,
+dall'alto in basso; spostando una finestra con `alt-shift-a/s/w/d` si spostano anche loro.
+AeroSpace elenca le finestre per nome dell'app e non dice il loro ordine, quindi `sketchybarrc`
+compila `helpers/window_order.swift` (non è nel repo), che lo legge da macOS. Le finestre dei
+workspace nascosti stanno tutte in un angolo dello schermo: per questi vale l'ordine dell'ultima
+volta che erano visibili, e dopo un riavvio del Mac quello alfabetico finché non li apri. Negli
+accordion con più di tre finestre quelle in mezzo hanno la stessa posizione, quindi il loro ordine
+può non essere quello di AeroSpace.
 
 La rete mostra il nome del Wi-Fi, `Ethernet` quando c'è un cavo, `Non connesso` (giallo) o
 `Wi-Fi off` (rosso). Da macOS 14.4 il nome del Wi-Fi è oscurato in `networksetup`, `ipconfig` e
@@ -153,28 +177,57 @@ e aggiornate ogni due minuti. Per gli auricolari conta il lato più scarico.
 Le icone sono simboli SF, tranne quelle che SF Symbols non ha, immagini che `sketchybarrc` genera
 quando cambia lo script che le fa. Quelle del Mac, degli schermi e degli occhiali le disegna
 `helpers/audio_icons.js` in `helpers/audio_icons`, dai simboli del dispositivo e dell'altoparlante o
-del microfono. Quella delle Galaxy Buds (riconosciute da `Buds4 Pro` nel nome) la ricava
+del microfono. Disegna come immagini anche gli altri simboli, per il menu: una sua riga può avere
+l'icona, il nome e il testo a destra solo se l'icona è un'immagine. Quella delle Galaxy Buds (riconosciute da `Buds4 Pro` nel nome) la ricava
 `helpers/galaxy_buds_icon.js` da una foto su sfondo trasparente, ritagliata e schiarita perché il
 corpo nero non sparisca sulla barra scura. La foto è di Samsung, quindi né lei né l'icona sono nel
 repo: la foto va messa in `sketchybar/helpers/galaxy_buds_photo.png`, altrimenti le Buds hanno
 l'icona delle cuffie.
-macOS non ha un comando da terminale per leggerli, quindi `sketchybarrc` compila
+Un clic sull'uscita o sull'ingresso apre il volume e i dispositivi di entrambi: per ciascuno il
+volume in percentuale, uno slider che lo cambia quando lo rilasci e i dispositivi che elencano le
+Impostazioni di Sistema (senza quelli delle app, come Microsoft Teams Audio), con quello in uso
+evidenziato e la batteria di quelli Bluetooth, come nella barra. Un clic su un altro lo rende
+quello predefinito; gli avvisi e gli effetti sonori passano alla nuova uscita, a meno che non li
+avessi mandati su un altro dispositivo. Se macOS non può cambiare il volume, come per le Arctis Nova
+Pro Wireless, che lo regolano dalla base, o per gli schermi, al posto dello slider c'è *Volume
+regolabile solo dal dispositivo*. Lo slider segue anche i tasti del volume, a zero quando l'audio è
+muto, e alzarlo toglie il muto.
+In fondo ci sono i dispositivi audio Bluetooth abbinati al Mac, anche quelli spenti: un clic li
+connette (*Connetti*) o li disconnette (*Disconnetti*). Finché ci prova la riga è gialla; se il
+dispositivo è spento o lontano, dopo una quindicina di secondi compare *Non riuscito*. macOS
+permette di usare il Bluetooth solo all'app che lo chiede, quindi `sketchybarrc` compila
+`helpers/bluetooth_devices.swift` in una piccola app, `helpers/bluetooth_devices.app` (non è nel
+repo), come per il calendario. Al primo clic macOS chiede l'accesso al Bluetooth per **SketchyBar
+Bluetooth**: scegli *Consenti*. Se l'hai negato compare *Non consentito*: attiva SketchyBar Bluetooth
+in Impostazioni di Sistema → Privacy e sicurezza → Bluetooth.
+macOS non ha un comando da terminale per leggerli e cambiarli, quindi `sketchybarrc` compila
 `helpers/audio_devices.swift` al primo avvio (e ogni volta che il sorgente cambia) e lo lascia in
-ascolto per aggiornare la barra appena cambi dispositivo. Il binario compilato non è nel repo. Se
-l'audio non compare, compilalo a mano per vedere l'errore:
+ascolto per aggiornare la barra appena cambi dispositivo o volume. Il binario compilato non è nel
+repo. Se l'audio non compare, compilalo a mano per vedere l'errore:
 
 ```bash
 swiftc -O ~/Developer/dotfiles/sketchybar/helpers/audio_devices.swift -o ~/Developer/dotfiles/sketchybar/helpers/audio_devices
 ```
 
-Il calendario mostra il prossimo evento della giornata (`14:30  Riunione`). Mentre un evento è in
-corso mostra quello (`Riunione · fino alle 15:00`), a meno che il successivo non inizi prima che
-finisca. Quando non restano eventi con orario compaiono quelli di tutto il giorno, e se non ci sono
-neanche quelli l'elemento sparisce. Legge tutti i calendari dell'app Calendario, tranne gli eventi
-annullati o rifiutati, e un clic apre Calendario. macOS concede l'accesso al calendario solo
-all'app che lo chiede, quindi `sketchybarrc` compila `helpers/calendar_events.swift` in una piccola
-app senza icona nel Dock, `helpers/calendar_events.app` (non è nel repo), e la avvia con `open`.
-Al primo avvio macOS chiede l'accesso ai calendari per **SketchyBar Calendar**: scegli *Consenti*.
+Il calendario mostra il prossimo evento della giornata e quanto manca
+(`14:30  Riunione · tra 20 min`, oppure `tra 1 h 20 min`). Mentre un evento è in corso mostra
+quello e quanto manca alla fine (`Riunione · fino alle 15:00 (ancora 20 min)`), a meno che il
+successivo non inizi prima che finisca.
+Quando non restano eventi con orario compaiono quelli di tutto il giorno, e se non ci sono neanche
+quelli l'elemento sparisce. Legge tutti i calendari dell'app Calendario, tranne gli eventi
+annullati o rifiutati.
+Un clic apre gli eventi della giornata, prima quelli di tutto il giorno, con quelli passati in
+grigio e l'orario di quello in corso in azzurro. Gli eventi con una riunione di Google Meet hanno il
+logo di Meet, e un clic li fa entrare nella riunione; un clic sugli altri li apre in Calendario. Il
+link di Meet lo cerca nelle note dell'evento, dove lo scrive Google Calendar, nel luogo e nell'URL.
+Il logo è quello di [MeetingBar](https://meetingbar.app), che `helpers/meet_icon.js` disegna in
+`helpers/meet_icon.png`; è di Google, quindi non è nel repo, e senza MeetingBar al suo posto c'è
+una videocamera verde.
+macOS concede l'accesso al calendario solo all'app che lo chiede, quindi `sketchybarrc` compila
+`helpers/calendar_events.swift` in una piccola app senza icona nel Dock,
+`helpers/calendar_events.app` (non è nel repo), e la avvia con `open`. Al primo avvio macOS chiede
+l'accesso ai calendari per **SketchyBar Calendar**: scegli *Consenti* (lo richiede ogni volta che
+`calendar_events.swift` cambia, perché l'app ricompilata ha un'altra firma).
 Se l'hai negato, al posto dell'evento compare `Nessun accesso al calendario` in rosso: attiva
 SketchyBar Calendar in Impostazioni di Sistema → Privacy e sicurezza → Calendari, poi
 `sketchybar --reload`.

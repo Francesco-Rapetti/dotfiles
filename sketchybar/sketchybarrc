@@ -41,14 +41,52 @@ with_icon=(
   label.padding_left=2
 )
 
+##### Apple Menu #####
+# The  menu of the menu bar, which SketchyBar covers: a click on the apple opens its commands.
+# macOS has no command line tool for Recent Items and Lock Screen, so apple.sh asks a Swift helper
+# (rebuilt when its source changes)
+APPLE_HELPER="$CONFIG_DIR/helpers/apple_menu"
+if [ ! -x "$APPLE_HELPER" ] || [ "$APPLE_HELPER.swift" -nt "$APPLE_HELPER" ]; then
+  swiftc -O "$APPLE_HELPER.swift" -o "$APPLE_HELPER"
+fi
+apple=(
+  "${with_icon[@]}"
+  icon=􀣺  # apple.logo
+  icon.font="SF Pro:Semibold:16.0"
+  icon.color=$TEXT
+  icon.padding_left=4
+  icon.padding_right=6
+  label.drawing=off
+  padding_right=8
+  script="$PLUGIN_DIR/apple.sh"
+  popup.align=left
+  # No minimum: apple.sh gives each row of the popup its own height
+  popup.height=0
+  popup.blur_radius=20
+  popup.background.color=$BASE
+  popup.background.corner_radius=10
+  popup.background.border_width=2
+  popup.background.border_color=$SURFACE
+)
+sketchybar --add item apple left \
+           --set apple "${apple[@]}" \
+           --subscribe apple mouse.clicked mouse.exited.global
+
 ##### AeroSpace Workspaces #####
 # See: https://nikitabobko.github.io/AeroSpace/goodies#show-aerospace-workspaces-in-sketchybar
 # Fixed 1-9 list (matches the alt-<n> bindings) instead of `aerospace list-workspaces --all`,
 # which only returns the workspaces alive when the bar loads.
 # aerospace.sh runs for the hidden item aerospace: it shows, hides and highlights the numbers and
-# adds the icons of the windows after them (a click on one focuses that window).
+# adds the icons of the windows after them, the focused window on a darker tile (a click on one
+# focuses that window). The icons follow the order of the windows on screen, which AeroSpace
+# doesn't say: the helper window_order (rebuilt when its source changes) reads it from macOS.
 # space_windows_change: a window opened or closed. aerospace_windows_change: AeroSpace moved the
-# focus or a window (on-focus-changed and the alt-shift-<n> bindings in aerospace.toml)
+# focus or a window (on-focus-changed and the alt-shift-<n> and alt-shift-a/s/w/d bindings in
+# aerospace.toml)
+ORDER_HELPER="$CONFIG_DIR/helpers/window_order"
+if [ ! -x "$ORDER_HELPER" ] || [ "$ORDER_HELPER.swift" -nt "$ORDER_HELPER" ]; then
+  swiftc -O "$ORDER_HELPER.swift" -o "$ORDER_HELPER"
+fi
 sketchybar --add event aerospace_workspace_change \
            --add event aerospace_windows_change
 
@@ -138,8 +176,11 @@ sketchybar --add item clock right \
 
 # Next event of the day from the macOS calendars, then today's all-day events, else hidden.
 # macOS grants calendar access per app, so the helper is built into an app of its own and
-# started with `open`: it triggers calendar_change whenever the event to show changes.
-# It is started without the shell's PATH, hence the path to sketchybar
+# started with `open`: it triggers calendar_change whenever the event to show or the events of the
+# day change. It is started without the shell's PATH, hence the path to sketchybar.
+# A click lists the events of the day, and a click on one joins its Google Meet call or shows it in
+# Calendar. The Meet logo is MeetingBar's, which helpers/meet_icon.js draws into helpers/meet_icon.png
+# (a camera without the app)
 CALENDAR_SOURCE="$CONFIG_DIR/helpers/calendar_events"
 CALENDAR_APP="$CALENDAR_SOURCE.app"
 CALENDAR_HELPER="$CALENDAR_APP/Contents/MacOS/calendar_events"
@@ -150,13 +191,126 @@ if [ ! -x "$CALENDAR_HELPER" ] || [ "$CALENDAR_SOURCE.swift" -nt "$CALENDAR_HELP
   swiftc -O "$CALENDAR_SOURCE.swift" -o "$CALENDAR_HELPER"
   codesign --force --sign - "$CALENDAR_APP"
 fi
+MEET_ICON="$CONFIG_DIR/helpers/meet_icon.png"
+if [ ! -f "$MEET_ICON" ] || [ "$CONFIG_DIR/helpers/meet_icon.js" -nt "$MEET_ICON" ] \
+   || [ /Applications/MeetingBar.app/Contents/Resources/Assets.car -nt "$MEET_ICON" ]; then
+  osascript -l JavaScript "$CONFIG_DIR/helpers/meet_icon.js" "$MEET_ICON" A6E3A1
+fi
+calendar=(
+  "${with_icon[@]}"
+  drawing=off
+  script="$PLUGIN_DIR/calendar.sh"
+  popup.align=right
+  # No minimum: calendar.sh gives each row of the popup its own height
+  popup.height=0
+  popup.blur_radius=20
+  popup.background.color=$BASE
+  popup.background.corner_radius=10
+  popup.background.border_width=2
+  popup.background.border_color=$SURFACE
+)
 sketchybar --add event calendar_change \
            --add item calendar right \
-           --set calendar "${with_icon[@]}" drawing=off script="$PLUGIN_DIR/calendar.sh" \
-                          click_script="open -a Calendar" \
-           --subscribe calendar calendar_change
+           --set calendar "${calendar[@]}" \
+           --subscribe calendar calendar_change mouse.clicked mouse.exited.global
 pkill -x calendar_events
 open -g -n "$CALENDAR_APP" --args "$(command -v sketchybar)"
+
+sketchybar --add item battery right \
+           --set battery update_freq=120 script="$PLUGIN_DIR/battery.sh" \
+           --subscribe battery system_woke power_source_change
+
+# wifi_change fires whenever the primary connection changes (Wi-Fi or Ethernet);
+# update_freq catches the rest, e.g. Wi-Fi turned on without joining a network
+sketchybar --add item network right \
+           --set network "${with_icon[@]}" update_freq=30 script="$PLUGIN_DIR/network.sh" \
+           --subscribe network wifi_change system_woke
+
+# Default audio output and input. CoreAudio has no command line tool, so a Swift helper
+# (rebuilt when its source changes) reads, lists and sets the devices and their volume and, in
+# watch mode, triggers audio_device_change whenever the default output or input changes or a
+# device comes or goes, and audio_volume_change whenever the volume of one of them changes
+AUDIO_HELPER="$CONFIG_DIR/helpers/audio_devices"
+if [ ! -x "$AUDIO_HELPER" ] || [ "$AUDIO_HELPER.swift" -nt "$AUDIO_HELPER" ]; then
+  swiftc -O "$AUDIO_HELPER.swift" -o "$AUDIO_HELPER"
+fi
+# SF Symbols has no Galaxy Buds: helpers/galaxy_buds_icon.js makes their icon out of a photo,
+# helpers/galaxy_buds_photo.png, which isn't in the repo (it's Samsung's). Without it audio.sh
+# shows them as headphones
+GALAXY_BUDS_PHOTO="$CONFIG_DIR/helpers/galaxy_buds_photo.png"
+GALAXY_BUDS_ICON="$CONFIG_DIR/helpers/galaxy_buds_icon.png"
+if [ -f "$GALAXY_BUDS_PHOTO" ] && { [ "$GALAXY_BUDS_PHOTO" -nt "$GALAXY_BUDS_ICON" ] \
+   || [ "$CONFIG_DIR/helpers/galaxy_buds_icon.js" -nt "$GALAXY_BUDS_ICON" ]; }; then
+  osascript -l JavaScript "$CONFIG_DIR/helpers/galaxy_buds_icon.js" "$GALAXY_BUDS_PHOTO" "$GALAXY_BUDS_ICON"
+fi
+# Nor the Mac, a display or audio glasses with a speaker, a microphone or both, since their own
+# symbols are the same for both: helpers/audio_icons.js draws all of them into helpers/audio_icons,
+# in the white of the icons
+AUDIO_ICONS="$CONFIG_DIR/helpers/audio_icons"
+if [ "$CONFIG_DIR/helpers/audio_icons.js" -nt "$AUDIO_ICONS/laptop_speaker.png" ]; then
+  osascript -l JavaScript "$CONFIG_DIR/helpers/audio_icons.js" "$AUDIO_ICONS" FFFFFF
+fi
+# The popup connects and disconnects the Bluetooth devices with an app of its own, as for the
+# calendar: macOS grants Bluetooth access per app, and asks the first time
+BLUETOOTH_SOURCE="$CONFIG_DIR/helpers/bluetooth_devices"
+BLUETOOTH_APP="$BLUETOOTH_SOURCE.app"
+BLUETOOTH_HELPER="$BLUETOOTH_APP/Contents/MacOS/bluetooth_devices"
+if [ ! -x "$BLUETOOTH_HELPER" ] || [ "$BLUETOOTH_SOURCE.swift" -nt "$BLUETOOTH_HELPER" ] \
+   || [ "$BLUETOOTH_SOURCE.plist" -nt "$BLUETOOTH_HELPER" ]; then
+  mkdir -p "$BLUETOOTH_APP/Contents/MacOS"
+  cp "$BLUETOOTH_SOURCE.plist" "$BLUETOOTH_APP/Contents/Info.plist"
+  swiftc -O "$BLUETOOTH_SOURCE.swift" -o "$BLUETOOTH_HELPER"
+  codesign --force --sign - "$BLUETOOTH_APP"
+fi
+sketchybar --add event audio_device_change \
+           --add event audio_volume_change
+pkill -x audio_devices
+"$AUDIO_HELPER" watch > /dev/null 2>&1 &
+
+# audio.sh updates all four items, since the input hides when it is the same device as the
+# output, or the Mac's microphone with its speakers; update_freq keeps the battery of Bluetooth
+# devices up to date.
+# The battery follows the name like a detail of the device: smaller and dimmer, and the negative
+# padding cancels most of the space after the name (label.padding_right + padding_right).
+# audio.sh sets the icon color, red when the battery is low
+audio_battery=(
+  "${with_icon[@]}"
+  drawing=off
+  padding_left=-10
+  icon.font="SF Pro:Semibold:12.0"
+  label.font="Helvetica Neue:Bold:11.0"
+  label.color=$SUBTEXT
+)
+# A click on any of them opens the popup of audio_output, under the output and the input: the
+# volume of each, with a slider, and their devices with the battery of the Bluetooth ones, where a
+# click makes one the default; then the paired Bluetooth audio devices, which a click connects or
+# disconnects
+audio_output=(
+  "${with_icon[@]}"
+  update_freq=120
+  script="$PLUGIN_DIR/audio.sh"
+  popup.align=left
+  # No minimum: audio.sh gives each row of the popup its own height
+  popup.height=0
+  popup.blur_radius=20
+  popup.background.color=$BASE
+  popup.background.corner_radius=10
+  popup.background.border_width=2
+  popup.background.border_color=$SURFACE
+)
+sketchybar --add item audio_input_battery right \
+           --set audio_input_battery "${audio_battery[@]}" script="$PLUGIN_DIR/audio.sh" \
+           --subscribe audio_input_battery mouse.clicked \
+           --add item audio_input right \
+           --set audio_input "${with_icon[@]}" script="$PLUGIN_DIR/audio.sh" \
+           --subscribe audio_input mouse.clicked \
+           --add item audio_output_battery right \
+           --set audio_output_battery "${audio_battery[@]}" script="$PLUGIN_DIR/audio.sh" \
+           --subscribe audio_output_battery mouse.clicked \
+           --add item audio_output right \
+           --set audio_output "${audio_output[@]}" \
+           --subscribe audio_output audio_device_change audio_volume_change system_woke \
+                                    mouse.clicked mouse.exited.global
 
 # Claude plan usage: how much of the 5-hour session and of the weekly limit is used, in yellow
 # from 75% and in red from 90%. A click opens the account, a bar and the time to the reset for
@@ -196,67 +350,6 @@ sketchybar --add event claude_update \
            --add item claude right \
            --set claude "${claude[@]}" \
            --subscribe claude claude_update system_woke mouse.clicked mouse.exited.global
-
-sketchybar --add item battery right \
-           --set battery update_freq=120 script="$PLUGIN_DIR/battery.sh" \
-           --subscribe battery system_woke power_source_change
-
-# wifi_change fires whenever the primary connection changes (Wi-Fi or Ethernet);
-# update_freq catches the rest, e.g. Wi-Fi turned on without joining a network
-sketchybar --add item network right \
-           --set network "${with_icon[@]}" update_freq=30 script="$PLUGIN_DIR/network.sh" \
-           --subscribe network wifi_change system_woke
-
-# Default audio output and input. CoreAudio has no command line tool, so a Swift helper
-# (rebuilt when its source changes) reads the devices and, in watch mode, triggers
-# audio_device_change whenever the default output or input changes
-AUDIO_HELPER="$CONFIG_DIR/helpers/audio_devices"
-if [ ! -x "$AUDIO_HELPER" ] || [ "$AUDIO_HELPER.swift" -nt "$AUDIO_HELPER" ]; then
-  swiftc -O "$AUDIO_HELPER.swift" -o "$AUDIO_HELPER"
-fi
-# SF Symbols has no Galaxy Buds: helpers/galaxy_buds_icon.js makes their icon out of a photo,
-# helpers/galaxy_buds_photo.png, which isn't in the repo (it's Samsung's). Without it audio.sh
-# shows them as headphones
-GALAXY_BUDS_PHOTO="$CONFIG_DIR/helpers/galaxy_buds_photo.png"
-GALAXY_BUDS_ICON="$CONFIG_DIR/helpers/galaxy_buds_icon.png"
-if [ -f "$GALAXY_BUDS_PHOTO" ] && { [ "$GALAXY_BUDS_PHOTO" -nt "$GALAXY_BUDS_ICON" ] \
-   || [ "$CONFIG_DIR/helpers/galaxy_buds_icon.js" -nt "$GALAXY_BUDS_ICON" ]; }; then
-  osascript -l JavaScript "$CONFIG_DIR/helpers/galaxy_buds_icon.js" "$GALAXY_BUDS_PHOTO" "$GALAXY_BUDS_ICON"
-fi
-# Nor the Mac, a display or audio glasses with a speaker, a microphone or both, since their own
-# symbols are the same for both: helpers/audio_icons.js draws all of them into helpers/audio_icons,
-# in the white of the icons
-AUDIO_ICONS="$CONFIG_DIR/helpers/audio_icons"
-if [ "$CONFIG_DIR/helpers/audio_icons.js" -nt "$AUDIO_ICONS/laptop_speaker.png" ]; then
-  osascript -l JavaScript "$CONFIG_DIR/helpers/audio_icons.js" "$AUDIO_ICONS" FFFFFF
-fi
-sketchybar --add event audio_device_change
-pkill -x audio_devices
-"$AUDIO_HELPER" watch > /dev/null 2>&1 &
-
-# audio.sh updates all four items, since the input hides when it is the same device as the
-# output, or the Mac's microphone with its speakers; update_freq keeps the battery of Bluetooth
-# devices up to date.
-# The battery follows the name like a detail of the device: smaller and dimmer, and the negative
-# padding cancels most of the space after the name (label.padding_right + padding_right).
-# audio.sh sets the icon color, red when the battery is low
-audio_battery=(
-  "${with_icon[@]}"
-  drawing=off
-  padding_left=-10
-  icon.font="SF Pro:Semibold:12.0"
-  label.font="Helvetica Neue:Bold:11.0"
-  label.color=$SUBTEXT
-)
-sketchybar --add item audio_input_battery right \
-           --set audio_input_battery "${audio_battery[@]}" \
-           --add item audio_input right \
-           --set audio_input "${with_icon[@]}" \
-           --add item audio_output_battery right \
-           --set audio_output_battery "${audio_battery[@]}" \
-           --add item audio_output right \
-           --set audio_output "${with_icon[@]}" update_freq=120 script="$PLUGIN_DIR/audio.sh" \
-           --subscribe audio_output audio_device_change system_woke
 
 ##### Force all scripts to run the first time #####
 sketchybar --update

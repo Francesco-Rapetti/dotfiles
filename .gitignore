@@ -1,7 +1,11 @@
 .DS_Store
+sketchybar/helpers/apple_menu
 sketchybar/helpers/audio_devices
+sketchybar/helpers/bluetooth_devices.app/
 sketchybar/helpers/calendar_events.app/
 sketchybar/helpers/calendar_month
 sketchybar/helpers/claude_icon.png
 sketchybar/helpers/galaxy_buds_icon.png
 sketchybar/helpers/galaxy_buds_photo.png
+sketchybar/helpers/meet_icon.png
+sketchybar/helpers/window_order
