@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key>
+	<string>com.github.francesco-rapetti.sketchybar-wifi</string>
+	<key>CFBundleName</key>
+	<string>SketchyBar Wi-Fi</string>
+	<key>CFBundleExecutable</key>
+	<string>wifi_networks</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSLocationUsageDescription</key>
+	<string>macOS mostra i nomi delle reti Wi-Fi vicine solo alle app che possono usare la posizione: servono al menu della rete di SketchyBar per elencarle e connettersi.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>macOS mostra i nomi delle reti Wi-Fi vicine solo alle app che possono usare la posizione: servono al menu della rete di SketchyBar per elencarle e connettersi.</string>
+</dict>
+</plist>

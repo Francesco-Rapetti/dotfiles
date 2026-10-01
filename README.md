@@ -123,8 +123,8 @@ aerospace config --config-path
 ```
 
 Deve stampare `~/.config/aerospace/aerospace.toml`. In alto dovresti vedere la barra con il logo
-Apple, i workspace, l'app attiva, il logo di Home Assistant, l'uso di CPU, GPU e memoria, quello di Claude, l'uscita e l'ingresso audio, la rete, la
-batteria, il prossimo evento del calendario, l'orologio e, se ci sono aggiornamenti, il loro pallino
+Apple, i workspace, l'app attiva, il logo di Home Assistant, l'uso di CPU, GPU e memoria, quello di Claude, l'uscita e l'ingresso audio, la rete (con la
+VPN, se attiva), la batteria, il prossimo evento del calendario, l'orologio e, se ci sono aggiornamenti, il loro pallino
 all'estrema destra, e la finestra attiva con il bordo sfumato.
 
 La barra è trasparente: ogni elemento, tranne il logo Apple, ha uno sfondo suo, un rettangolo
@@ -183,7 +183,37 @@ La rete mostra il nome del Wi-Fi, `Ethernet` quando c'è un cavo, `Non connesso`
 `Wi-Fi off` (rosso). Da macOS 14.4 il nome del Wi-Fi è oscurato in `networksetup`, `ipconfig` e
 `system_profiler`: `plugins/network.sh` lo legge dall'ultima scansione salvata nella configurazione
 di sistema. Se un aggiornamento di macOS chiude anche questa strada, al posto del nome compare
-`Wi-Fi`.
+`Wi-Fi`. Con una VPN attiva, nella stessa pillola compaiono uno scudo verde e il suo nome: quello
+delle VPN di Impostazioni di Sistema e delle app VPN (WireGuard, Tailscale…), che macOS elenca in
+`scutil --nc list`, oppure `VPN` per quelle che macOS non conosce ma che si vedono dal loro tunnel
+(`utun`). La barra si aggiorna subito quando cambia la connessione principale e comunque ogni 30
+secondi: la VPN può comparire o sparire con quel ritardo.
+Un clic sulla rete o sulla VPN apre l'indirizzo IP del Mac, quello pubblico, il router e la VPN, con
+il suo indirizzo. L'IP pubblico lo chiede a [ipify](https://www.ipify.org) a ogni apertura del popup:
+con la VPN è quello della VPN. Finché non arriva quello nuovo resta il precedente, in grigio se nel
+frattempo la connessione è cambiata.
+Sotto ci sono l'Ethernet e il Wi-Fi, ciascuno con *Disattiva* o *Attiva*. Per l'Ethernet è
+*Disattiva servizio* di Impostazioni di Sistema → Rete (`networksetup -setnetworkserviceenabled`,
+che resta anche dopo un riavvio), con l'adattatore e se è connesso; compare solo quando c'è
+l'adattatore. Per il Wi-Fi è l'interruttore del Wi-Fi.
+Poi le reti Wi-Fi vicine, con il segnale a una, due o tre tacche e il lucchetto se sono protette:
+prima quelle salvate sul Mac, con quella in uso evidenziata, poi le altre, le dieci più forti.
+Un clic su una si collega, e intanto la riga dice *Connessione…*. Da macOS 14.4 i nomi delle reti li
+vede solo un'app che può usare la posizione, e `networksetup -setairportnetwork` non si collega più
+(errore -3900). Per questo `sketchybarrc` compila `helpers/wifi_networks.swift` in una piccola app,
+`helpers/wifi_networks.app` (non è nel repo), come per il calendario. L'app resta aperta, perché
+macOS le dà il permesso qualche secondo dopo ogni avvio. Avvisa la barra quando cambiano le reti, e
+quando si apre il popup ne cerca di nuove. Al primo avvio, e a volte dopo una ricompilazione
+(l'app è firmata ad-hoc), macOS chiede l'accesso alla posizione per **SketchyBar Wi-Fi**: scegli
+*Consenti*. Se l'hai negato, il popup mostra *Consenti la posizione per vedere le reti*, che apre
+Impostazioni di Sistema → Privacy e sicurezza → Servizi di localizzazione.
+Per collegarsi l'app deve dare la password anche per le reti già salvate. Per queste la prende dal
+portachiavi di Sistema, e macOS la concede solo con nome e password di un amministratore, ogni volta;
+le altre reti protette la chiedono in una finestra. La password che funziona finisce nel portachiavi
+login (servizio `sketchybar-wifi`), dove `security` la legge senza chiedere niente, come il token di
+Home Assistant: dalla volta dopo il cambio di rete è immediato. Le reti aziendali o universitarie,
+che vogliono anche un nome utente, aprono Impostazioni Wi-Fi. Le icone del segnale le disegna
+`helpers/network_icons.js` in `helpers/network_icons` (non è nel repo), dal simbolo SF del Wi-Fi.
 
 ![La batteria](screenshots/battery.png)
 
@@ -473,7 +503,9 @@ barra mostra quei dati e apre i popup uno alla volta, poi `sketchybar --reload` 
 ```
 
 La prima volta macOS chiede il permesso di **Registrazione schermo** per il terminale (Impostazioni di
-Sistema → Privacy e sicurezza → Registrazione schermo e audio di sistema). I popup si aprono sullo
-schermo dove c'è il mouse, e le immagini hanno i pixel di quello schermo: 2 per punto su uno Retina.
+Sistema → Privacy e sicurezza → Registrazione schermo e audio di sistema). La barra e i popup
+vengono dallo schermo dove c'è il mouse, e le immagini hanno i pixel di quello schermo: 2 per punto
+su uno Retina. Con un monitor esterno, tieni il mouse su quello più largo: sul MacBook i due lati della
+barra si sovrappongono.
 Quando aggiungi o modifichi un plugin, aggiungi i suoi dati in `screenshots/mock` o in `take.sh`,
 rifai le sue immagini e mettile nel README accanto alla sua descrizione.

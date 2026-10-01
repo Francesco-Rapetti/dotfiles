@@ -19,7 +19,7 @@ CAPTURE="$DIR/capture"
 SHOTS=(bar apple workspaces home system claude audio network battery calendar clock brew)
 # The items of the two sides of the bar, for the shot of the whole bar
 LEFT=(apple spaces front_app)
-RIGHT=(home_printer home system claude audio network battery calendar clock brew)
+RIGHT=(home_printer home system claude audio connection battery calendar clock brew)
 
 # The time of the screenshots: today at 14:10, for the clock, the events and the resets of Claude.
 # Today, since the calendar of the clock is drawn for the real one
@@ -154,6 +154,13 @@ CALENDAR=(
   EVENTS=$'allday\x1fTutto il giorno\x1fCompleanno di Luca\x1f\x1fical://ekevent/1\npast\x1f09:30 – 10:00\x1fStandup\x1fhttps://meet.google.com/abc-defg-hij\x1fical://ekevent/2\npast\x1f12:30 – 13:30\x1fPranzo con Giulia\x1f\x1fical://ekevent/3\nupcoming\x1f14:30 – 15:30\x1fRevisione design\x1fhttps://meet.google.com/xyz-abcd-efg\x1fical://ekevent/4\nupcoming\x1f18:00 – 19:00\x1fPalestra\x1f\x1fical://ekevent/5'
 )
 
+# The Wi-Fi networks around the Mac that helpers/wifi_networks.app sends: the name, the level of the
+# signal, the security and whether the Mac knows it, separated by tabs
+WIFI=(
+  NETWORKS=$'Casa\t3\tpersonal\t1\nBar Centrale\t2\topen\t0\nCasa Ospiti\t2\tpersonal\t1\nCondominio 3B\t2\tpersonal\t0\nHotspot Fibra\t1\tpersonal\t0\nStudio Medico\t1\tpersonal\t0'
+  PERMISSION=
+)
+
 # Every item with its made-up data, as after the first run of each plugin. The bar stops updating
 # first, once the runs it has started are over
 mock_bar() {
@@ -165,7 +172,7 @@ mock_bar() {
   run system cpu system_stats_change "${SYSTEM[@]}"
   run claude claude claude_update
   run audio audio_output forced
-  run network network forced
+  run network network wifi_networks_change "${WIFI[@]}"
   run battery battery forced
   run calendar calendar calendar_change "${CALENDAR[@]}"
   run clock clock routine
@@ -185,7 +192,11 @@ shot_home() { snap home home home_printer home; }
 shot_system() { snap system cpu system; }
 shot_claude() { snap claude claude claude; }
 shot_audio() { snap audio audio_output audio; }
-shot_network() { snap network "" network; }
+shot_network() {
+  run network network mouse.clicked
+  settle "$CONFIG/plugins/network.sh"
+  snap network network connection
+}
 shot_battery() {
   run battery battery mouse.clicked
   snap battery battery battery

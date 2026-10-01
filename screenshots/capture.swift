@@ -3,10 +3,11 @@
 //   capture <png> [--popup] <x,y,w,h>...
 //                       capture the items in the rects on one display, in the points of
 //                       sketchybar --query (bounding_rects), side by side, e.g. the left and the
-//                       right items of a wide bar. The display is the main one or, with --popup, the
-//                       one where the popup is open, which SketchyBar opens where the mouse is: the
-//                       rects on the others are left out, and the first one grows to take in the
-//                       popup. In the pixels of the display: 2 per point on a Retina one
+//                       right items of a wide bar. The display is the one where the mouse is or, with
+//                       --popup, the one where the popup is open, which SketchyBar opens where the
+//                       mouse is: so all the shots come from the same display. The rects on the
+//                       others are left out, and the first one grows to take in the popup. In the
+//                       pixels of the display: 2 per point on a Retina one
 // SketchyBar draws each item, bracket and popup row in a window of its own: only those in the rects
 // and those of the popup are captured, not the items next to them that a wide popup would take in
 // ScreenCaptureKit needs the Screen Recording permission of the app that runs this, e.g. Terminal
@@ -49,10 +50,10 @@ let windows = content.windows.filter { $0.owningApplication?.applicationName == 
 // The popup is the windows above the bar, its background and its rows; SketchyBar keeps the hidden
 // ones off screen
 let popupWindows = windows.filter { $0.windowLayer > 0 }
-let main = CGDisplayBounds(CGMainDisplayID())
+let mouse = CGEvent(source: nil)?.location ?? .zero
 guard let display = content.displays.first(where: { display in
-  popup ? popupWindows.contains { display.frame.intersects($0.frame) } : display.frame == main
-}) else { fail(popup ? "no popup open" : "no main display") }
+  popup ? popupWindows.contains { display.frame.intersects($0.frame) } : display.frame.contains(mouse)
+}) else { fail(popup ? "no popup open" : "no display under the mouse") }
 
 rects = rects.filter { display.frame.contains(CGPoint(x: $0.midX, y: $0.midY)) }
 guard !rects.isEmpty else { fail("no rect on the display at \(display.frame)") }

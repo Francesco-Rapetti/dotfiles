@@ -1,10 +1,19 @@
 #!/bin/sh
 
-# networksetup for network.sh: a Mac with Wi-Fi only, which is on
+# networksetup for network.sh: a Mac with Wi-Fi, which is on, and a USB Ethernet adapter without
+# the cable. Turning them off or on does nothing
 
 case "$1" in
   -listallhardwareports)
+    printf 'Hardware Port: USB 10/100/1000 LAN\nDevice: en7\nEthernet Address: 00:00:00:00:00:07\n\n'
+    printf 'Hardware Port: Thunderbolt Bridge\nDevice: bridge0\nEthernet Address: 00:00:00:00:00:01\n\n'
     printf 'Hardware Port: Wi-Fi\nDevice: en0\nEthernet Address: 00:00:00:00:00:00\n\n'
+    ;;
+  -listnetworkserviceorder)
+    printf 'An asterisk (*) denotes that a network service is disabled.\n'
+    printf '(1) USB 10/100/1000 LAN\n(Hardware Port: USB 10/100/1000 LAN, Device: en7)\n\n'
+    printf '(2) Thunderbolt Bridge\n(Hardware Port: Thunderbolt Bridge, Device: bridge0)\n\n'
+    printf '(3) Wi-Fi\n(Hardware Port: Wi-Fi, Device: en0)\n\n'
     ;;
   -getairportpower) echo "Wi-Fi Power (en0): On" ;;
 esac

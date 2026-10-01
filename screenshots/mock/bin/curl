@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# curl for network.sh: the public address that the VPN shows, one of those for documentation
+
+echo 203.0.113.42

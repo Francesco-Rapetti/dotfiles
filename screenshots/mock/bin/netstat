@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# netstat for network.sh: the default routes of the VPN and of the Wi-Fi
+
+printf 'Routing tables\n\nInternet:\n'
+printf '%-18s %-18s %-10s %10s\n' Destination Gateway Flags Netif \
+  default link#24 UCSg utun4 \
+  default 192.168.1.1 UGScIg en0
