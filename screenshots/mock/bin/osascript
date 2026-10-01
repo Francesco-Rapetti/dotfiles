@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# osascript, but the name of the Wi-Fi network.sh reads is made up. The plugins also use it to
+# measure texts, so the other scripts run
+
+for argument in "$@"; do
+  if [ "$argument" = - ]; then
+    script="$(cat)"
+    case "$script" in
+      *CachedScanRecord*) echo "Casa" ;;
+      *) /usr/bin/osascript "$@" <<< "$script" ;;
+    esac
+    exit
+  fi
+done
+exec /usr/bin/osascript "$@"

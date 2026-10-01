@@ -1,0 +1,4 @@
+#!/bin/sh
+
+# helpers/window_order for aerospace.sh: the made-up windows of bin/aerospace are already in order
+cat

@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# helpers/apple_menu for apple.sh: made-up Recent Items, with the icons of apps and documents of
+# every Mac drawn as the real one does, 4 px per point. Clear Menu and Lock Screen do nothing
+
+[ "$1" = recent ] || exit 0
+mkdir -p "$2"
+/usr/bin/osascript -l JavaScript - "$2" <<'JS'
+ObjC.import('AppKit')
+// <kind> <name> <app, or the extension of a document>
+const ITEMS = [
+  ['application', 'Calendario', '/System/Applications/Calendar.app'],
+  ['application', 'Note', '/System/Applications/Notes.app'],
+  ['application', 'Safari', '/Applications/Safari.app'],
+  ['document', 'Preventivo cucina.pdf', 'pdf'],
+  ['document', 'Spese 2026.numbers', 'numbers'],
+  ['server', 'nas.local', null],
+]
+const PIXELS = 16 * 4
+
+function run([directory]) {
+  const workspace = $.NSWorkspace.sharedWorkspace
+  return ITEMS.map(([kind, name, target], i) => {
+    const icon = target === null ? $.NSImage.imageNamed($.NSImageNameNetwork)
+      : target.startsWith('/') ? workspace.iconForFile(target) : workspace.iconForFileType(target)
+    const bitmap = $.NSBitmapImageRep.alloc.initWithBitmapDataPlanesPixelsWidePixelsHighBitsPerSampleSamplesPerPixelHasAlphaIsPlanarColorSpaceNameBytesPerRowBitsPerPixel(
+      null, PIXELS, PIXELS, 8, 4, true, false, $.NSDeviceRGBColorSpace, 0, 0)
+    $.NSGraphicsContext.saveGraphicsState
+    $.NSGraphicsContext.setCurrentContext($.NSGraphicsContext.graphicsContextWithBitmapImageRep(bitmap))
+    icon.drawInRectFromRectOperationFraction($.NSMakeRect(0, 0, PIXELS, PIXELS), $.NSZeroRect, $.NSCompositingOperationSourceOver, 1)
+    $.NSGraphicsContext.restoreGraphicsState
+    const file = `${directory}/${i}.png`
+    bitmap.representationUsingTypeProperties($.NSBitmapImageFileTypePNG, $()).writeToFileAtomically(file, true)
+    return [kind, name, target ?? 'smb://nas.local', file].join('\t')
+  }).join('\n')
+}
+JS

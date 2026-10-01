@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# helpers/battery_charge for battery.sh: at 80%, plugged in to a 96 W adapter and held there by the
+# Charge Limit of 80%. Setting the limit does nothing
+
+[ "$1" = status ] && printf '80\tac\t0\t0\t0\t80\ton\t1\t0\t0\t96\n'
+exit 0
