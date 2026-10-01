@@ -1,6 +1,8 @@
 .DS_Store
 sketchybar/helpers/apple_menu
 sketchybar/helpers/audio_devices
+sketchybar/helpers/battery_charge
+sketchybar/helpers/battery_icons/
 sketchybar/helpers/bluetooth_devices.app/
 sketchybar/helpers/calendar_events.app/
 sketchybar/helpers/calendar_month

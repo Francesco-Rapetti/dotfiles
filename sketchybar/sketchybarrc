@@ -216,9 +216,43 @@ sketchybar --add event calendar_change \
 pkill -x calendar_events
 open -g -n "$CALENDAR_APP" --args "$(command -v sketchybar)"
 
-sketchybar --add item battery right \
-           --set battery update_freq=120 script="$PLUGIN_DIR/battery.sh" \
-           --subscribe battery system_woke power_source_change
+# The charge, with an icon for the state: the level on battery, the bolt while charging, the plug
+# when plugged in but not charging, green while the Charge Limit of macOS (26.4+) looks after the
+# battery. A click opens the state in words, the limit, where a click sets another, Completa carica
+# ora, the health of the battery and the Battery settings. macOS has no command line tool for the
+# limit, so a Swift helper (rebuilt when its source changes) reads and sets it through the private
+# framework of System Settings and, in watch mode, triggers battery_change whenever the battery or
+# the limit changes. SF Symbols has the plug, but the font has no name for it:
+# helpers/battery_icons.js draws it by name into helpers/battery_icons, in each color of battery.sh
+BATTERY_HELPER="$CONFIG_DIR/helpers/battery_charge"
+if [ ! -x "$BATTERY_HELPER" ] || [ "$BATTERY_HELPER.swift" -nt "$BATTERY_HELPER" ]; then
+  swiftc -O "$BATTERY_HELPER.swift" -o "$BATTERY_HELPER"
+fi
+BATTERY_ICONS="$CONFIG_DIR/helpers/battery_icons"
+if [ "$CONFIG_DIR/helpers/battery_icons.js" -nt "$BATTERY_ICONS/plug_text.png" ]; then
+  # TEXT, the Catppuccin green and yellow of battery.sh
+  osascript -l JavaScript "$CONFIG_DIR/helpers/battery_icons.js" "$BATTERY_ICONS" \
+            text=CDD6F4 green=A6E3A1 yellow=F9E2AF
+fi
+battery=(
+  "${with_icon[@]}"
+  script="$PLUGIN_DIR/battery.sh"
+  popup.align=right
+  # No minimum: battery.sh gives each row of the popup its own height
+  popup.height=0
+  popup.blur_radius=20
+  popup.background.color=$BASE
+  popup.background.corner_radius=10
+  popup.background.border_width=2
+  popup.background.border_color=$SURFACE
+)
+sketchybar --add event battery_change \
+           --add item battery right \
+           --set battery "${battery[@]}" \
+           --subscribe battery battery_change power_source_change system_woke \
+                               mouse.clicked mouse.exited.global
+pkill -x battery_charge
+"$BATTERY_HELPER" watch > /dev/null 2>&1 &
 
 # wifi_change fires whenever the primary connection changes (Wi-Fi or Ethernet);
 # update_freq catches the rest, e.g. Wi-Fi turned on without joining a network
