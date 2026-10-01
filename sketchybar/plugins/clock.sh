@@ -7,15 +7,12 @@
 MONTH_HELPER="$CONFIG_DIR/helpers/calendar_month"
 MONTH_IMAGE="${TMPDIR:-/tmp}/sketchybar_calendar_month.png"
 
-TEXT=0xffcdd6f4
-SUBTEXT=0xffa6adc8
-SKY=0xff89dceb
-BASE=0xff1e1e2e  # the text on SKY, as in the focused workspace
+. "$CONFIG_DIR/colors.sh"
 
 case "$SENDER" in
   mouse.clicked)
     # The helper prints the scale that shows the image at its size in points
-    scale="$("$MONTH_HELPER" "$MONTH_IMAGE" $TEXT $SUBTEXT $SKY $BASE)" &&
+    scale="$("$MONTH_HELPER" "$MONTH_IMAGE" $TEXT $SUBTEXT $PRIMARY $ON_PRIMARY)" &&
       sketchybar --set clock.month background.image.scale="$scale" background.image="$MONTH_IMAGE"
     sketchybar --set "$NAME" popup.drawing=toggle
     exit 0

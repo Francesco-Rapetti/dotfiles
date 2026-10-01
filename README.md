@@ -10,6 +10,7 @@ dotfiles/
 ├── aerospace/aerospace.toml   → ~/.config/aerospace
 └── sketchybar/                → ~/.config/sketchybar
     ├── sketchybarrc
+    ├── colors.sh              (la palette, condivisa da sketchybarrc e dai plugin)
     ├── plugins/*.sh
     └── helpers/*.swift, *.plist, *.js  (compilati o eseguiti da sketchybarrc)
 ```
@@ -119,6 +120,14 @@ Deve stampare `~/.config/aerospace/aerospace.toml`. In alto dovresti vedere la b
 Apple, i workspace, l'app attiva, l'uso di CPU, GPU e memoria, quello di Claude, l'uscita e l'ingresso audio, la rete, la
 batteria, il prossimo evento del calendario, l'orologio e, se ci sono aggiornamenti, il loro pallino
 all'estrema destra, e la finestra attiva con il bordo sfumato.
+
+La barra è trasparente: ogni elemento, tranne il logo Apple, ha uno sfondo suo, un rettangolo
+arrotondato che galleggia sopra la scrivania, allineato ai bordi delle finestre. Quelli fatti di più parti ne hanno uno solo:
+i workspace, CPU/GPU/memoria e l'audio. I colori sono la palette
+[Catppuccin Mocha](https://catppuccin.com/palette/#flavor-mocha), con il mauve (`#cba6f7`) come
+colore principale: il workspace attivo, oggi nel calendario, le voci dei popup che fanno qualcosa,
+gli slider e le barre. Sono tutti in `sketchybar/colors.sh`: per cambiare il colore principale basta
+cambiare `PRIMARY`.
 
 Se la barra è vuota o mancano i workspace:
 
@@ -242,7 +251,7 @@ Quando non restano eventi con orario compaiono quelli di tutto il giorno, e se n
 quelli l'elemento sparisce. Legge tutti i calendari dell'app Calendario, tranne gli eventi
 annullati o rifiutati.
 Un clic apre gli eventi della giornata, prima quelli di tutto il giorno, con quelli passati in
-grigio e l'orario di quello in corso in azzurro. Gli eventi con una riunione di Google Meet hanno il
+grigio e l'orario di quello in corso in viola. Gli eventi con una riunione di Google Meet hanno il
 logo di Meet, e un clic li fa entrare nella riunione; un clic sugli altri li apre in Calendario. Il
 link di Meet lo cerca nelle note dell'evento, dove lo scrive Google Calendar, nel luogo e nell'URL.
 Il logo è quello di [MeetingBar](https://meetingbar.app), che `helpers/meet_icon.js` disegna in

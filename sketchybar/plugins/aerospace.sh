@@ -15,11 +15,9 @@
 exec 9> "${TMPDIR:-/tmp}/sketchybar_aerospace.lock"
 lockf -s -t 5 9 || exit
 
-SKY=0xff89dceb
-BASE=0xff1e1e2e
-TEXT=0xffcdd6f4
-# BASE at 35%, the tile of the focused window
-TILE=0x591e1e2e
+source "$CONFIG_DIR/colors.sh"
+# BASE at 35% on PRIMARY, the tile of the focused window
+TILE=0x59${BASE#0xff}
 
 # The app icon, 19pt at this scale, centered in the 23pt of the label: the room around it shows
 # the tile, which is the background of the item. The label is empty, or the initial of the app for
@@ -40,9 +38,11 @@ window=(
   label.padding_right=0
 )
 
+# Inside the pill of the workspaces (the bracket spaces of sketchybarrc), 3pt from its edges: the
+# corner radius is the pill's less 3
 group=(
-  background.color=$SKY
-  background.corner_radius=6
+  background.color=$PRIMARY
+  background.corner_radius=7
   background.height=22
 )
 
@@ -61,7 +61,7 @@ WINDOWS="$(cat <&3)"
 args=()
 for sid in 1 2 3 4 5 6 7 8 9; do
   if [ "$sid" = "$FOCUSED" ]; then
-    color=$BASE highlight=on
+    color=$ON_PRIMARY highlight=on
   else
     color=$TEXT highlight=off
   fi

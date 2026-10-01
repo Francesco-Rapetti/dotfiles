@@ -9,9 +9,7 @@ WIFI_NO_NET=􀙥  # wifi.exclamationmark
 ETHERNET=􀴞     # cable.connector.horizontal
 OFFLINE=􁣡      # network.slash
 
-TEXT=0xffcdd6f4
-YELLOW=0xfff9e2af
-RED=0xfff38ba8
+source "$CONFIG_DIR/colors.sh"
 
 # macOS 14.4+ redacts the SSID in networksetup, ipconfig and system_profiler,
 # but it is still in the last scan record cached in the System Configuration store
@@ -36,18 +34,18 @@ HARDWARE_DEVICES="$(awk '/^Device:/ {print $2}' <<< "$PORTS")"
 
 # Interfaces with a working connection, in service order: the first physical one
 # (skipping VPN tunnels and the like) is the one macOS is actually using
-PRIMARY=""
+PRIMARY_INTERFACE=""
 for interface in $(scutil --nwi | sed -n 's/^Network interfaces: //p'); do
   if grep -qx "$interface" <<< "$HARDWARE_DEVICES"; then
-    PRIMARY="$interface"
+    PRIMARY_INTERFACE="$interface"
     break
   fi
 done
 
-if [ -n "$PRIMARY" ] && [ "$PRIMARY" = "$WIFI_DEVICE" ]; then
+if [ -n "$PRIMARY_INTERFACE" ] && [ "$PRIMARY_INTERFACE" = "$WIFI_DEVICE" ]; then
   SSID="$(wifi_ssid "$WIFI_DEVICE")"
   ICON=$WIFI COLOR=$TEXT LABEL="${SSID:-Wi-Fi}"
-elif [ -n "$PRIMARY" ]; then
+elif [ -n "$PRIMARY_INTERFACE" ]; then
   ICON=$ETHERNET COLOR=$TEXT LABEL="Ethernet"
 elif [ -z "$WIFI_DEVICE" ]; then
   ICON=$OFFLINE COLOR=$RED LABEL="Offline"

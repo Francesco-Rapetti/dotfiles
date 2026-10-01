@@ -90,8 +90,9 @@ preset = 'qwerty'
 inner.horizontal = 14
 inner.vertical = 14
 outer.left = 8
-# sketchybar height (32) + 8. The built-in display already reserves 38pt for the notch
-outer.top = [{ monitor.built-in = 2 }, 40]
+# 8 under the components of sketchybar, which end 34pt from the top (6 + 28). The built-in display
+# already reserves 38pt for the notch
+outer.top = [{ monitor.built-in = 4 }, 42]
 outer.bottom = 8
 # outer.bottom = [
 #     { monitor."Odyssey G93SC" = 40 },

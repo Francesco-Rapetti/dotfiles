@@ -23,15 +23,7 @@ CHARGING=􀢋     # battery.100.bolt
 BATTERY_ICONS="$CONFIG_DIR/helpers/battery_icons"
 HELPER="$CONFIG_DIR/helpers/battery_charge"
 
-TEXT=0xffcdd6f4
-SUBTEXT=0xffa6adc8
-SURFACE=0xff313244
-HIGHLIGHT=0xff45475a
-GREEN=0xffa6e3a1
-YELLOW=0xfff9e2af
-RED=0xfff38ba8
-SKY=0xff89dceb
-TRANSPARENT=0x00000000
+source "$CONFIG_DIR/colors.sh"
 
 FONT="Helvetica Neue:Bold:13.0"  # the default label font
 SMALL_FONT="Helvetica Neue:Medium:11.0"
@@ -81,9 +73,9 @@ icon_settings() {
     /*)
       local a b c d
       read -r a b c d < <(od -An -tu1 -j16 -N4 "$1")
-      ICON_SETTINGS=(icon="" icon.width=$((8 + ((a << 24 | b << 16 | c << 8 | d) + 3) / 4))
+      ICON_SETTINGS=(icon="" icon.width=$((12 + ((a << 24 | b << 16 | c << 8 | d) + 3) / 4))
                      icon.background.drawing=on icon.background.image="$1"
-                     icon.background.image.scale=0.25 icon.background.image.padding_left=8)
+                     icon.background.image.scale=0.25 icon.background.image.padding_left=12)
       ;;
     *) ICON_SETTINGS=(icon="$1" icon.width=dynamic icon.background.drawing=off) ;;
   esac
@@ -257,7 +249,7 @@ render_popup() {
     button_row "limit.$option" "$text" $TEXT "limit $option" $current
     [ "$LIMIT_STATE" = none ] && sets+=(drawing=off)
   done
-  button_row full "$CHARGE_TO_FULL" $SKY full other
+  button_row full "$CHARGE_TO_FULL" $PRIMARY full other
   [ "$LIMIT_STATE" = on ] && [ "$POWER" = ac ] && [ "$PERCENT" -lt 100 ] || sets+=(drawing=off)
 
   text_row health "$HEALTH_TITLE" "$FONT" $TEXT "$condition_text" "$FONT" $condition_color
@@ -270,7 +262,7 @@ render_popup() {
   # Apart from the battery
   text_row settings.gap "" "$SMALL_FONT" $SUBTEXT
   sets+=(background.height=10)
-  button_row settings "$SETTINGS" $SKY settings other
+  button_row settings "$SETTINGS" $PRIMARY settings other
 
   if [ "$(sketchybar --query battery | jq -r '.popup.items // [] | join(" ")')" = "${names[*]}" ]; then
     sketchybar "${sets[@]}"

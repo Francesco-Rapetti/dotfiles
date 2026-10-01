@@ -13,14 +13,7 @@ BREWFILE="$CONFIG_DIR/../Brewfile"
 LOCK="${TMPDIR:-/tmp}/sketchybar_brew.lock"
 LOG="$HOME/Library/Logs/sketchybar-brew.log"
 
-TEXT=0xffcdd6f4
-SUBTEXT=0xffa6adc8
-OVERLAY=0xff6c7086
-HIGHLIGHT=0xff45475a
-RED=0xfff38ba8
-YELLOW=0xfff9e2af
-SKY=0xff89dceb
-TRANSPARENT=0x00000000
+source "$CONFIG_DIR/colors.sh"
 
 UPGRADING="aggiornamento…"
 UPGRADE_ALL="Aggiorna tutto"
@@ -134,7 +127,7 @@ render() {
     background.drawing=on
   )
   # "Riavvia AeroSpace" and "Aggiorna tutto" have no name column
-  local action=("${row[@]}" label.color=$SKY label.padding_left=$PADDING)
+  local action=("${row[@]}" label.color=$PRIMARY label.padding_left=$PADDING)
 
   if [ -n "$2" ]; then
     items+=(--add item brew.row.restart popup.brew

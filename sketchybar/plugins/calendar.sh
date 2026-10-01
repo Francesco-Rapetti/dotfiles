@@ -12,13 +12,7 @@
 CALENDAR=􀉉  # calendar
 MEET_ICON="$CONFIG_DIR/helpers/meet_icon.png"
 
-TEXT=0xffcdd6f4
-SUBTEXT=0xffa6adc8
-OVERLAY=0xff6c7086
-HIGHLIGHT=0xff45475a
-RED=0xfff38ba8
-SKY=0xff89dceb
-TRANSPARENT=0x00000000
+source "$CONFIG_DIR/colors.sh"
 
 FONT="Helvetica Neue:Bold:13.0"  # the default label font
 MIN_WIDTH=220
@@ -98,7 +92,7 @@ render() {
   for ((i = 0; i < ${#states[@]}; i++)); do
     case "${states[i]}" in
       past) colors=($OVERLAY $OVERLAY) ;;
-      ongoing) colors=($SKY $TEXT) ;;
+      ongoing) colors=($PRIMARY $TEXT) ;;
       *) colors=($SUBTEXT $TEXT) ;;
     esac
     # The logo is the background image of the row, from its left edge
