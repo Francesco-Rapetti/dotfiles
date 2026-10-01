@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# helpers/home_assistant for home.sh: the states are in the CACHE of the made-up TMPDIR, and the
+# clicks don't reach any Home Assistant
+exit 0

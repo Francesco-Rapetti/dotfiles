@@ -1,0 +1,30 @@
+#!/bin/sh
+
+# AeroSpace for aerospace.sh and brew.sh: made-up windows in workspaces 1, 2, 3, 8 and 9, the second
+# one of workspace 1 focused, and a running AeroSpace older than the installed one, so that the
+# popup of brew has "Riavvia AeroSpace". It never calls the real one, which would move the windows
+
+case "$1" in
+  list-windows)
+    case " $* " in
+      *" --focused "*) echo 102 ;;
+      *)
+        cat <<'WINDOWS'
+1|101|com.apple.Safari|Safari
+1|102|com.apple.Terminal|Terminal
+1|103|com.apple.Terminal|Terminal
+2|201|com.apple.Music|Music
+3|301|com.apple.Notes|Notes
+3|302|com.apple.iCal|Calendar
+8|801|com.apple.MobileSMS|Messages
+9|901|com.apple.mail|Mail
+WINDOWS
+        ;;
+    esac
+    ;;
+  list-workspaces) echo 1 ;;
+  --version)
+    echo "aerospace CLI client version: 0.21.3-Beta 0000000000000000000000000000000000000000"
+    echo "AeroSpace.app server version: 0.20.2-Beta 0000000000000000000000000000000000000000"
+    ;;
+esac

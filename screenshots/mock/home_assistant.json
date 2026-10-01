@@ -1,0 +1,21 @@
+{
+  "online": true,
+  "states": {
+    "light.soggiorno": {"state": "on", "attributes": {"brightness": 178, "supported_color_modes": ["brightness"]}},
+    "switch.camera": {"state": "off", "attributes": {}},
+    "cover.tenda": {"state": "open", "attributes": {"current_position": 60}},
+    "climate.soggiorno": {
+      "state": "cool",
+      "attributes": {
+        "current_temperature": 26.5, "temperature": 24, "min_temp": 16, "max_temp": 30, "target_temp_step": 0.5,
+        "hvac_modes": ["off", "cool", "heat", "dry", "fan_only", "auto"]
+      }
+    },
+    "switch.stampante_3d": {"state": "on", "attributes": {}},
+    "vacuum.robot": {"state": "docked", "attributes": {}},
+    "script.buonanotte": {"state": "off", "attributes": {}},
+    "sensor.stampante_3d_stato_di_stampa": {"state": "running", "attributes": {}},
+    "sensor.stampante_3d_progressi_di_stampa": {"state": "45", "attributes": {}},
+    "sensor.stampante_3d_tempo_rimanente": {"state": "1.33", "attributes": {}}
+  }
+}

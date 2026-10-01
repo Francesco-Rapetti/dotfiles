@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# scutil for network.sh: connected through the Wi-Fi
+
+case "$1" in
+  --nwi) echo "Network interfaces: en0" ;;
+  *) exec /usr/sbin/scutil "$@" ;;
+esac

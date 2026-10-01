@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# brew for brew.sh: two outdated formulae of the Brewfile and no casks
+
+case "$1:$*" in
+  outdated:*--formula*)
+    echo "felixkratz/formulae/sketchybar (2.24.0) < 2.25.0"
+    echo "felixkratz/formulae/borders (1.8.4) < 1.9.0"
+    ;;
+esac

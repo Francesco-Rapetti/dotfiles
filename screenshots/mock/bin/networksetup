@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# networksetup for network.sh: a Mac with Wi-Fi only, which is on
+
+case "$1" in
+  -listallhardwareports)
+    printf 'Hardware Port: Wi-Fi\nDevice: en0\nEthernet Address: 00:00:00:00:00:00\n\n'
+    ;;
+  -getairportpower) echo "Wi-Fi Power (en0): On" ;;
+esac

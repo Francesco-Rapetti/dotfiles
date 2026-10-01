@@ -4,16 +4,21 @@ Configurazione di [AeroSpace](https://github.com/nikitabobko/AeroSpace) (tiling 
 [SketchyBar](https://github.com/FelixKratz/SketchyBar) (barra di stato), con i bordi delle finestre
 disegnati da [JankyBorders](https://github.com/FelixKratz/JankyBorders).
 
+![La barra](screenshots/bar.png)
+
 ```
 dotfiles/
 ├── Brewfile                   (i pacchetti Homebrew)
 ├── aerospace/aerospace.toml   → ~/.config/aerospace
-└── sketchybar/                → ~/.config/sketchybar
-    ├── sketchybarrc
-    ├── colors.sh              (la palette, condivisa da sketchybarrc e dai plugin)
-    ├── home_assistant.conf.example  (da copiare in home_assistant.conf, che non è nel repo)
-    ├── plugins/*.sh
-    └── helpers/*.swift, *.plist, *.js  (compilati o eseguiti da sketchybarrc)
+├── sketchybar/                → ~/.config/sketchybar
+│   ├── sketchybarrc
+│   ├── colors.sh              (la palette, condivisa da sketchybarrc e dai plugin)
+│   ├── home_assistant.conf.example  (da copiare in home_assistant.conf, che non è nel repo)
+│   ├── plugins/*.sh
+│   └── helpers/*.swift, *.plist, *.js  (compilati o eseguiti da sketchybarrc)
+└── screenshots/               (le immagini di questo README, con dati inventati)
+    ├── take.sh                (le rifà, vedi Screenshot in fondo)
+    └── mock/                  (gli helper e i comandi finti che usano i plugin)
 ```
 
 Le cartelle in `~/.config` sono symlink verso questo repo: le app leggono la config dal percorso
@@ -137,6 +142,8 @@ chmod +x ~/Developer/dotfiles/sketchybar/sketchybarrc ~/Developer/dotfiles/sketc
 sketchybar --reload
 ```
 
+![Il menu Apple](screenshots/apple.png)
+
 Il logo Apple sostituisce quello della barra dei menu, che SketchyBar copre: un clic apre gli stessi
 comandi, con i testi di macOS (*Informazioni su questo Mac*, *Impostazioni di Sistema…*,
 *App Store…*, *Elementi recenti*, *Uscita forzata…*, *Standby*, *Riavvia…*, *Spegni…*,
@@ -150,6 +157,8 @@ comando da terminale per gli elementi recenti e per bloccare lo schermo, quindi 
 compila `helpers/apple_menu.swift` (non è nel repo). La prima volta che usi *Uscita forzata…*,
 *Riavvia…*, *Spegni…* o il logout macOS potrebbe chiedere di consentire a SketchyBar di controllare
 loginwindow: scegli *Consenti*.
+
+![I workspace e l'app attiva](screenshots/workspaces.png)
 
 Ogni workspace mostra il numero seguito dall'icona di ciascuna delle sue finestre, la stessa del
 Dock: tre finestre di VS Code sono tre icone. Quello attivo è evidenziato insieme alle sue icone, e
@@ -168,11 +177,15 @@ volta che erano visibili, e dopo un riavvio del Mac quello alfabetico finché no
 accordion con più di tre finestre quelle in mezzo hanno la stessa posizione, quindi il loro ordine
 può non essere quello di AeroSpace.
 
+![La rete](screenshots/network.png)
+
 La rete mostra il nome del Wi-Fi, `Ethernet` quando c'è un cavo, `Non connesso` (giallo) o
 `Wi-Fi off` (rosso). Da macOS 14.4 il nome del Wi-Fi è oscurato in `networksetup`, `ipconfig` e
 `system_profiler`: `plugins/network.sh` lo legge dall'ultima scansione salvata nella configurazione
 di sistema. Se un aggiornamento di macOS chiude anche questa strada, al posto del nome compare
 `Wi-Fi`.
+
+![La batteria](screenshots/battery.png)
 
 La batteria mostra la percentuale e, con l'icona, lo stato: a batteria il livello (giallo con il
 risparmio energetico, altrimenti rosso dal 20% in giù), in carica il fulmine, collegato ma non in
@@ -204,6 +217,8 @@ l'autorizzazione (*entitlement*) di Impostazioni, ma risponde lo stesso; se un a
 macOS lo impedisse, il limite resterebbe modificabile solo da Impostazioni. La spina è un simbolo SF
 che `helpers/battery_icons.js` disegna in `helpers/battery_icons` (non è nel repo), un'immagine per
 colore.
+
+![L'audio](screenshots/audio.png)
 
 L'audio mostra il dispositivo di uscita e quello di ingresso predefiniti, con un'icona per tipo
 (altoparlanti, cuffie, headset, AirPods, Galaxy Buds4 Pro, occhiali audio, monitor, AirPlay,
@@ -250,6 +265,8 @@ repo. Se l'audio non compare, compilalo a mano per vedere l'errore:
 swiftc -O ~/Developer/dotfiles/sketchybar/helpers/audio_devices.swift -o ~/Developer/dotfiles/sketchybar/helpers/audio_devices
 ```
 
+![Il calendario](screenshots/calendar.png)
+
 Il calendario mostra il prossimo evento della giornata e quanto manca
 (`14:30  Riunione · tra 20 min`, oppure `tra 1 h 20 min`). Mentre un evento è in corso mostra
 quello e quanto manca alla fine (`Riunione · fino alle 15:00 (ancora 20 min)`), a meno che il
@@ -277,11 +294,15 @@ I testi seguono la lingua del Mac (italiano o inglese, per le altre lingue ingle
 formato della sua regione, 12 o 24 ore compreso. Anche l'orologio mostra il giorno della settimana
 nella lingua del Mac (`mer 30/09  14:30`).
 
+![L'orologio](screenshots/clock.png)
+
 Un clic sull'orologio apre il mese corrente, con oggi evidenziato, la settimana che parte dal
 giorno scelto in Impostazioni di Sistema → Generali → Lingua e Zona e i weekend più tenui; un clic
 sul mese apre Calendario. SketchyBar non sa disporre gli elementi di un popup in una griglia, quindi
 il mese è un'immagine che `helpers/calendar_month.swift` disegna ogni volta che si apre, con i pixel
 del monitor su cui si apre (compilato da `sketchybarrc`, non è nel repo).
+
+![Gli aggiornamenti di Homebrew](screenshots/brew.png)
 
 Quando uno dei pacchetti del `Brewfile` ha una nuova versione su Homebrew, all'estrema destra
 compare un pallino rosso con quanti sono. Un clic apre l'elenco con la versione installata e quella
@@ -305,6 +326,8 @@ workspace visibile sul suo monitor, tranne le app con una regola `on-window-dete
 nel loro. Le notifiche le manda `terminal-notifier`: alla prima macOS chiede il permesso, scegli
 *Consenti*.
 
+![L'uso di Claude](screenshots/claude.png)
+
 La scintilla arancione di Claude mostra quanto hai usato dei limiti del tuo piano, la sessione di
 5 ore e la settimana (`50% · 39%`), in giallo dal 75% e in rosso dal 90%. Un clic apre il nome,
 l'email e il piano dell'account e, per ciascun limite, la percentuale, una barra e quanto manca al
@@ -320,6 +343,8 @@ grigio fino alla successiva. Serve [Claude Code](https://code.claude.com/docs) (
 `PATH`: `~/.local/bin`, Homebrew, nvm) e `jq`, che macOS ha da Sequoia. L'icona è quella della
 barra dei menu dell'app Claude, che `helpers/claude_icon.js` colora in `helpers/claude_icon.png`
 (non è nel repo); senza l'app al suo posto c'è ✻.
+
+![CPU, GPU e memoria](screenshots/system.png)
 
 Alla sinistra di Claude c'è quanto stanno lavorando la CPU, la GPU e la memoria, ognuna con la sua
 icona (un chip, un cubo, un banco di RAM) e la percentuale, aggiornate ogni 2 secondi. CPU e GPU
@@ -340,6 +365,8 @@ macOS non ha un comando da terminale per l'uso della GPU, quindi `sketchybarrc` 
 `helpers/system_stats.swift` (non è nel repo), che legge i valori senza permessi di amministratore
 e avvisa SketchyBar quando cambiano; i dettagli li legge solo mentre il popup è aperto. Se il
 driver della GPU non ne riporta l'uso la GPU non compare; su Apple Silicon c'è sempre.
+
+![Home Assistant](screenshots/home.png)
 
 Alla sinistra della CPU c'è il logo di [Home Assistant](https://www.home-assistant.io), nel suo blu,
 con quanti dispositivi del suo popup sono accesi (luci, prese, clima, l'aspirapolvere mentre
@@ -431,3 +458,22 @@ sketchybar --reload
 ```
 
 Infine `git commit` e `git push` come in qualsiasi repo.
+
+## Screenshot
+
+Le immagini del README sono in `screenshots/` e le fa `screenshots/take.sh` con dati inventati:
+fa girare i plugin come li fa girare SketchyBar, sulla barra vera, ma con gli helper e i comandi di
+`screenshots/mock` (account, dispositivi, eventi, Wi-Fi e Home Assistant finti), e cattura solo le
+finestre di SketchyBar, quindi niente scrivania né finestre sotto i popup. Per qualche secondo la
+barra mostra quei dati e apre i popup uno alla volta, poi `sketchybar --reload` la rimette com'era.
+
+```bash
+~/Developer/dotfiles/screenshots/take.sh          # tutte
+~/Developer/dotfiles/screenshots/take.sh battery  # solo quelle nominate
+```
+
+La prima volta macOS chiede il permesso di **Registrazione schermo** per il terminale (Impostazioni di
+Sistema → Privacy e sicurezza → Registrazione schermo e audio di sistema). I popup si aprono sullo
+schermo dove c'è il mouse, e le immagini hanno i pixel di quello schermo: 2 per punto su uno Retina.
+Quando aggiungi o modifichi un plugin, aggiungi i suoi dati in `screenshots/mock` o in `take.sh`,
+rifai le sue immagini e mettile nel README accanto alla sua descrizione.

@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# date at MOCK_NOW, the made-up time of the screenshots, unless it is given a time with -r or -j
+
+case " $* " in
+  *" -r "* | *" -j "*) exec /bin/date "$@" ;;
+esac
+exec /bin/date -r "$MOCK_NOW" "$@"

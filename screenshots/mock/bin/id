@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# id for apple.sh: the full name of the user, in "Esegui il logout da …"
+
+case "$1" in
+  -F) echo "Mario Rossi" ;;
+  *) exec /usr/bin/id "$@" ;;
+esac
