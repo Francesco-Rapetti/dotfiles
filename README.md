@@ -11,6 +11,7 @@ dotfiles/
 └── sketchybar/                → ~/.config/sketchybar
     ├── sketchybarrc
     ├── colors.sh              (la palette, condivisa da sketchybarrc e dai plugin)
+    ├── home_assistant.conf.example  (da copiare in home_assistant.conf, che non è nel repo)
     ├── plugins/*.sh
     └── helpers/*.swift, *.plist, *.js  (compilati o eseguiti da sketchybarrc)
 ```
@@ -117,7 +118,7 @@ aerospace config --config-path
 ```
 
 Deve stampare `~/.config/aerospace/aerospace.toml`. In alto dovresti vedere la barra con il logo
-Apple, i workspace, l'app attiva, l'uso di CPU, GPU e memoria, quello di Claude, l'uscita e l'ingresso audio, la rete, la
+Apple, i workspace, l'app attiva, il logo di Home Assistant, l'uso di CPU, GPU e memoria, quello di Claude, l'uscita e l'ingresso audio, la rete, la
 batteria, il prossimo evento del calendario, l'orologio e, se ci sono aggiornamenti, il loro pallino
 all'estrema destra, e la finestra attiva con il bordo sfumato.
 
@@ -182,9 +183,15 @@ batteria. Un clic apre lo stato a parole (`Ferma al limite (80%)`, `Carica sospe
 `Ancora 5 h 12 min`…) con la potenza dell'alimentatore, poi il **limite di carica** di macOS
 (Impostazioni di Sistema → Batteria, da macOS 26.4): un clic su 80, 85, 90, 95% o *Nessun limite*
 lo cambia, come in Impostazioni. Con il limite attivo c'è anche *Completa carica ora*, la stessa
-voce del menu della batteria di macOS: carica fino al 100%, e più tardi il limite torna da solo. In
-fondo lo stato della batteria (capacità massima e cicli, come in Impostazioni) e *Impostazioni
-Batteria…*.
+voce del menu della batteria di macOS: carica fino al 100%, e più tardi il limite torna da solo.
+Finché è sospeso il fulmine e la spina sono gialli e il popup lo dice accanto al titolo, con
+evidenziato il limite a cui tornerà e, al posto di *Completa carica ora*, *Riattiva il limite ora*;
+le percentuali restano grigie e non si cliccano finché non lo riattivi. macOS dice quel limite solo
+a Impostazioni, quindi l'helper ricorda l'ultimo che ha visto attivo (in
+`~/Library/Preferences/sketchybar.battery_charge.plist`); se non l'ha mai visto, nessuno è
+evidenziato, manca *Riattiva il limite ora* e un clic su una percentuale riattiva il limite con
+quella. In fondo lo stato della batteria (capacità massima e
+cicli, come in Impostazioni) e *Impostazioni Batteria…*.
 È il modo per tenere il Mac sempre collegato, per esempio chiuso con un monitor esterno, senza
 stressare la batteria e senza app come AlDente: il limite lo applica macOS, solo mentre è acceso
 (da spento la carica la gestisce il firmware), e ogni tanto carica comunque fino al 100% per tarare
@@ -334,6 +341,51 @@ macOS non ha un comando da terminale per l'uso della GPU, quindi `sketchybarrc` 
 e avvisa SketchyBar quando cambiano; i dettagli li legge solo mentre il popup è aperto. Se il
 driver della GPU non ne riporta l'uso la GPU non compare; su Apple Silicon c'è sempre.
 
+Alla sinistra della CPU c'è il logo di [Home Assistant](https://www.home-assistant.io), nel suo blu,
+con quanti dispositivi del suo popup sono accesi (luci, prese, clima, l'aspirapolvere mentre
+pulisce); è grigio quando Home Assistant non risponde. Mentre la stampante 3D stampa, alla sua sinistra compare una
+stampante con la percentuale, gialla quando la stampa è in pausa.
+Un clic su una delle due apre i dispositivi, divisi in gruppi, ognuno con il suo stato a destra. Un
+clic accende o spegne le luci, le prese e il clima, apre o chiude le tende, manda l'aspirapolvere a
+pulire o alla base, esegue uno script o una scena. Sotto le luci dimmerabili, le tende e il clima
+acceso c'è uno slider che, quando lo rilasci, cambia la luminosità, la posizione o la temperatura,
+con il passo del dispositivo; finché il condizionatore non risponde la riga mostra già il nuovo
+valore. Il clima acceso ha anche la sua *Modalità*: un clic elenca le altre che ha (*Freddo*,
+*Caldo*, *Deumidifica*, *Ventola*, *Caldo/freddo*, *Automatico*) e un clic su una la imposta. La
+presa della stampante si spegne solo al secondo clic (*Fai clic per spegnere*), e lo fa con uno
+script di Home Assistant che non fa niente mentre la stampante lavora; mentre stampa sotto la presa
+c'è una barra con la percentuale e il tempo che manca (`45% · ancora 1 h 20 min`). In fondo c'è
+*Apri Home Assistant*, che apre la dashboard.
+L'indirizzo del server, la dashboard, i dispositivi con i loro nomi e la stampante (integrazione
+Bambu Lab, facoltativa) sono in `sketchybar/home_assistant.conf`, che non è nel repo perché sono
+quelli di casa: copia `sketchybar/home_assistant.conf.example`, che spiega cosa ci va, compilalo e
+ricarica SketchyBar. Senza il file il logo non compare. Per un interruttore usa l'entità che lo
+comanda: alcune integrazioni ne creano anche una che ne copia solo lo stato, e un clic su quella
+non fa niente.
+Lo stato arriva in tempo reale: `sketchybarrc` compila `helpers/home_assistant.swift` (non è nel
+repo), che resta collegato alla WebSocket API di Home Assistant, avvisa SketchyBar quando cambia un
+dispositivo e chiama i servizi per i clic. Se il server non risponde riprova ogni 10 secondi, e
+subito al risveglio del Mac. Le icone sono simboli SF che `helpers/home_assistant_icons.js` disegna
+in `helpers/home_assistant_icons` (non è nel repo), un'immagine per colore. Lo stesso script colora il
+logo, che è un marchio di Home Assistant e quindi non è nel repo: `sketchybarrc` lo scarica una volta
+dal tuo server, che lo ha come icona delle schede fissate di Safari, in
+`helpers/home_assistant_logo.svg`. Se al primo avvio il server non risponde, al posto del logo c'è
+una casa fino al prossimo `sketchybar --reload`.
+Serve un token di accesso a lunga durata (Home Assistant → Profilo → Sicurezza → *Token di accesso
+a lunga durata*), che sta nel Portachiavi e non nel repo. Copialo negli appunti, poi:
+
+```bash
+security add-generic-password -U -a "$USER" -s sketchybar-home-assistant -w "$(pbpaste)"
+pbcopy < /dev/null
+```
+
+Non usare `-w` senza valore: il prompt prende al massimo 128 caratteri e taglierebbe il token. Per
+verificarlo, con il server di `home_assistant.conf`, deve stampare `{"message":"API running."}`:
+
+```bash
+(source ~/.config/sketchybar/home_assistant.conf && curl -s -H "Authorization: Bearer $(security find-generic-password -s sketchybar-home-assistant -w)" "$SERVER/api/")
+```
+
 ## Da adattare al nuovo Mac
 
 In `aerospace/aerospace.toml`:
@@ -346,6 +398,9 @@ In `aerospace/aerospace.toml`:
 - **`[[on-window-detected]]`**: regole che spostano le app nei workspace (WhatsApp, Telegram, Mail
   → 9; Teams, Slack → 8; Spotify, Chrome → 2). Per trovare l'id di un'app:
   `osascript -e 'id of app "Nome App"'`.
+
+Per Home Assistant, `sketchybar/home_assistant.conf` e il token nel Portachiavi non sono nel repo:
+vanno rifatti su ogni Mac (vedi sopra, dopo CPU, GPU e memoria).
 
 ## Scorciatoie principali
 

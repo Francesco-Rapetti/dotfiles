@@ -3,8 +3,9 @@
 //   battery_charge status       print "<percent>\t<power>\t<charging>\t<charged>\t<minutes>\t<limit>\t<limit state>\t<held>\t
 //                               <desktop>\t<low power>\t<watts>", or nothing without a battery: <power> ac or battery,
 //                               <minutes> to empty on battery or to full while charging (-1 while macOS works it out),
-//                               <limit> 80-100, 100 for none, <limit state> on, off, paused (after Charge to Full Now) or
-//                               none (a Mac without the Charge Limit), <held> 1 when macOS holds the charge (the limit,
+//                               <limit> 80-100, 100 for none, <limit state> on, off, paused (after Charge to Full Now,
+//                               with the limit it goes back to, 0 when this helper never saw it on) or none (a Mac
+//                               without the Charge Limit), <held> 1 when macOS holds the charge (the limit,
 //                               Optimized Battery Charging or the desktop mode), <desktop> 1 in the desktop mode of a Mac
 //                               rarely used on battery, <watts> of the power adapter, <charging>, <charged> and
 //                               <low power> 1 or 0
@@ -25,8 +26,9 @@ import notify
 // Battery Charging
 @objc protocol SmartChargeClient {
   @objc(isMCLSupported) func isMCLSupported() -> Bool
+  // The limit in force: 100 also while Charge to Full Now pauses it
   @objc(getMCLLimitWithError:) func mclLimit(_ error: NSErrorPointer) -> UInt8
-  // 1 while on, something else after Charge to Full Now; the limit is off when it is 100
+  // 1 while on, 3 while Charge to Full Now pauses it
   @objc(isMCLCurrentlyEnabled:) func mclState(_ error: NSErrorPointer) -> UInt
   @objc(isOBCEngaged:asDesktopDevice:chargingOverrideAllowed:withError:)
   func isHeld(_ held: UnsafeMutablePointer<ObjCBool>, desktop: UnsafeMutablePointer<ObjCBool>,
@@ -36,6 +38,15 @@ import notify
 }
 
 let limits: [UInt8] = [80, 85, 90, 95, 100]
+let on: UInt = 1, paused: UInt = 3
+
+// The limit Charge to Full Now pauses comes back by itself, but PowerUIAgent tells which one only to
+// System Settings: this helper remembers the last one it saw on, in
+// ~/Library/Preferences/sketchybar.battery_charge.plist
+let saved = UserDefaults(suiteName: "sketchybar.battery_charge")!
+func remember(_ limit: UInt8) {
+  if limit < 100 { saved.set(Int(limit), forKey: "limit") }
+}
 
 func client() -> SmartChargeClient? {
   guard dlopen("/System/Library/PrivateFrameworks/PowerUI.framework/PowerUI", RTLD_NOW) != nil,
@@ -73,7 +84,17 @@ func printStatus() {
     var error: NSError?
     limit = client.mclLimit(&error)
     if error != nil || !limits.contains(limit) { limit = 100 }
-    state = limit == 100 ? "off" : client.mclState(nil) == 1 ? "on" : "paused"
+    switch client.mclState(nil) {
+    case on where limit < 100:
+      state = "on"
+      remember(limit)
+    case paused:
+      state = "paused"
+      limit = UInt8(saved.integer(forKey: "limit"))
+    default:
+      state = "off"
+      limit = 100
+    }
     var overrideAllowed: ObjCBool = false
     if !client.isHeld(&held, desktop: &desktop, overrideAllowed: &overrideAllowed, error: nil) {
       held = false
@@ -96,10 +117,15 @@ func setLimit(_ argument: String) {
   guard let client = client(), client.isMCLSupported() else { fail("this Mac has no Charge Limit") }
   var error: NSError?
   guard client.setMCLLimit(limit, error: &error) else { fail(error?.localizedDescription ?? "can't set the limit") }
+  // Also while Charge to Full Now pauses the limit, which this turns back on unless macOS keeps it
+  // paused
+  if limit < 100 && client.mclState(nil) != on { fail("the limit is still off") }
+  remember(limit)
 }
 
 func chargeToFull() {
   guard let client = client(), client.isMCLSupported() else { fail("this Mac has no Charge Limit") }
+  if client.mclState(nil) == on { remember(client.mclLimit(nil)) }
   var error: NSError?
   guard client.temporarilyDisableMCL(&error) else { fail(error?.localizedDescription ?? "can't charge to full") }
 }

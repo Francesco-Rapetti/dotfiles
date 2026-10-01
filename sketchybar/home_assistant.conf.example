@@ -1,0 +1,43 @@
+# Home Assistant for plugins/home.sh, which sources this file. Copy it to home_assistant.conf and
+# fill it in: that one isn't in the repo, since it has the address of the server and the entities of
+# the house. Without it the home items stay hidden. The token is in the keychain (see the README).
+# After a change: sketchybar --reload
+
+# The server, and the dashboard that the last row of the popup opens
+SERVER=https://homeassistant.local:8123
+DASHBOARD="$SERVER/lovelace/0"
+
+# The rows of the popup, in order: group and its title, or an entity and its name. The domains are
+# light, switch, cover, climate, vacuum, script and scene; a switch is a light when its name starts
+# with Luce, else a plug
+ROWS=(
+  group "Luci"
+  light.soggiorno "Luce soggiorno"
+  switch.camera "Luce camera"
+  group "Tende"
+  cover.tenda "Tenda"
+  group "Clima"
+  climate.soggiorno "Clima soggiorno"
+  group "Altro"
+  switch.stampante_3d "Stampante 3D"
+  vacuum.robot "Aspirapolvere"
+  script.buonanotte "Buonanotte"
+)
+
+# Optional, a 3D printer of the Bambu Lab integration: its plug, among the rows, which turns off at
+# the second click through a script that should do nothing while the printer works, and the sensors
+# of its status, progress (%) and time left (hours), which name after the language of Home
+# Assistant. While it prints the bar shows its progress. Without a printer, leave them empty.
+# The script can be:
+#   sequence:
+#     - condition: template
+#       value_template: >-
+#         {{ states('sensor.stampante_3d_stato_di_stampa') not in ['running', 'prepare', 'slicing'] }}
+#     - action: switch.turn_off
+#       target:
+#         entity_id: switch.stampante_3d
+PRINTER_PLUG=switch.stampante_3d
+PRINTER_OFF=script.spegni_stampante
+PRINTER_STATUS=sensor.stampante_3d_stato_di_stampa
+PRINTER_PROGRESS=sensor.stampante_3d_progressi_di_stampa
+PRINTER_REMAINING=sensor.stampante_3d_tempo_rimanente

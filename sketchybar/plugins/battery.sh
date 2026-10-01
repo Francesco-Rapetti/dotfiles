@@ -3,16 +3,19 @@
 # Battery of the Mac: the battery item shows the charge with an icon for its state. Its popup says
 # the state in words, then lists the Charge Limit of System Settings → Battery (macOS 26.4+), where
 # a click on another percentage sets it, with Completa carica ora (Charge to Full Now) while the
-# limit is on, the health of the battery and a row that opens the Battery settings.
+# limit is on, the health of the battery and a row that opens the Battery settings. Completa carica
+# ora pauses the limit until macOS turns it back on: the popup says so, on the percentage it goes
+# back to, with a row that turns it back on now, and the percentages wait for it, dimmed.
 # helpers/battery_charge reads the battery and the limit and sets the limit, which macOS has no
 # command line tool for, and in watch mode triggers battery_change whenever one of them changes.
 # The icon is an SF Symbol: on battery the level, yellow in Low Power Mode or else red at 20% or
 # less as in the macOS battery menu, while charging the bolt, and plugged in but not charging the
 # plug (an image of helpers/battery_icons.js), yellow when macOS doesn't say why. Green is a battery
 # macOS looks after: the bolt while charging up to the limit, the plug while it holds the charge,
-# at the limit, for Optimized Battery Charging or in the desktop mode of a Mac rarely used on battery
+# at the limit, for Optimized Battery Charging or in the desktop mode of a Mac rarely used on battery.
+# Yellow is also the bolt or the plug while Completa carica ora pauses the limit
 # The item runs this with no arguments, the popup rows with limit <percent>, full or settings and
-# then current or other
+# then current or other, or with disabled
 
 BATTERY_100=􀛨  # battery.100
 BATTERY_75=􀺸   # battery.75
@@ -28,7 +31,8 @@ source "$CONFIG_DIR/colors.sh"
 FONT="Helvetica Neue:Bold:13.0"  # the default label font
 SMALL_FONT="Helvetica Neue:Medium:11.0"
 MIN_WIDTH=260
-PADDING=10        # inside the rows
+INSET=4           # between the rows and the edge of the popup, as in apple.sh
+PADDING=8         # inside the rows
 GAP=16            # between the two columns of a row
 ROW_HEIGHT=24     # of a row, unless it sets its own
 TITLE_HEIGHT=38   # of the title of a section, with room above
@@ -43,6 +47,10 @@ NOT_CHARGING="La batteria non è in carica"
 LIMIT_TITLE="Limite di carica"
 NO_LIMIT="Nessun limite"
 CHARGE_TO_FULL="Completa carica ora"
+PAUSED="Sospeso"
+PAUSED_DETAILS="Per Completa carica ora: macOS lo riattiva da solo più tardi"
+RESUME="Riattiva il limite ora"
+FAILED="Non riuscito"
 HEALTH_TITLE="Stato batteria"
 NORMAL="Normale"
 SERVICE="Assistenza consigliata"
@@ -111,7 +119,7 @@ state() {
     ICON=$CHARGING COLOR=$TEXT STATUS=$CHARGING_TEXT
     case "$LIMIT_STATE" in
       on) COLOR=$GREEN DETAILS="Fino al limite ($LIMIT%)" ;;
-      paused) DETAILS="Fino al 100%" ;;
+      paused) COLOR=$YELLOW DETAILS="Fino al 100%" ;;
       *) [ "$MINUTES" -gt 0 ] && DETAILS="Completa tra $(duration "$MINUTES")" ;;
     esac
   else
@@ -126,6 +134,7 @@ state() {
     else
       COLOR=$YELLOW STATUS=$NOT_CHARGING STATUS_COLOR=$YELLOW
     fi
+    [ "$LIMIT_STATE" = paused ] && COLOR=$YELLOW
     local name=text
     [ "$COLOR" = $GREEN ] && name=green
     [ "$COLOR" = $YELLOW ] && name=yellow
@@ -169,14 +178,21 @@ EOF
 # Each render lists all the popup rows, as in claude.sh: row <name> <properties>... puts one at the
 # bottom. names, adds and sets are the rows, the commands that add them and the ones that set them.
 # The rows are always the same, the ones not needed hidden: removing the row under the mouse, e.g.
-# Completa carica ora once clicked, would close the popup (mouse.exited.global)
+# Completa carica ora once clicked, would close the popup (mouse.exited.global). The rows are INSET
+# from the edges, so the highlight doesn't touch them
 names=() adds=() sets=()
 row() {
   local name="battery.row.$1"
   shift
   names+=("$name")
   adds+=(--add item "$name" popup.battery)
-  sets+=(--set "$name" padding_left=0 padding_right=0 "$@")
+  sets+=(--set "$name" padding_left=$INSET padding_right=$INSET "$@")
+}
+
+# space <name> <height>: room above the first row and below the last one, as in apple.sh
+space() {
+  row "$1" width=$WIDTH icon.drawing=off label.drawing=off background.drawing=on \
+           background.color=$TRANSPARENT background.height=$2
 }
 
 # text_row <name> <left> <left font> <left color> [<right> <right font> <right color>]: a row with
@@ -197,15 +213,17 @@ text_row() {
   row "$1" "${properties[@]}"
 }
 
-# button_row <name> <text> <color> <action> <current|other>: lit up under the mouse, and on a
-# background when it is the current one; a click runs this with the action
+# button_row <name> <text> <color> <action> <current|other> [disabled]: lit up under the mouse, and
+# on a background when it is the current one; a click runs this with the action. Disabled, it is
+# dimmed and ignores the mouse, still on its background when it is the current one
 button_row() {
-  local background=$TRANSPARENT
+  local background=$TRANSPARENT color=$3 script="$0 $4 $5"
   [ "$5" = current ] && background=$SURFACE
-  row "$1" drawing=on width=$WIDTH icon.drawing=on icon="$2" icon.font="$FONT" icon.color=$3 \
+  [ "$6" = disabled ] && color=$OVERLAY script="$0 disabled"
+  row "$1" drawing=on width=$WIDTH icon.drawing=on icon="$2" icon.font="$FONT" icon.color=$color \
            icon.padding_left=$PADDING icon.padding_right=0 icon.width=dynamic label.drawing=off \
            background.drawing=on background.color=$background background.corner_radius=6 \
-           background.height=$ROW_HEIGHT script="$0 $4 $5"
+           background.height=$ROW_HEIGHT script="$script"
   sets+=(--subscribe "battery.row.$1" mouse.entered mouse.exited mouse.clicked)
 }
 
@@ -222,35 +240,53 @@ render_popup() {
   for option in "${LIMITS[@]}"; do options+=("$option%"); done
   local widths
   widths=($(text_widths HelveticaNeue-Bold 13 "$STATUS" "$LIMIT_TITLE" "${options[@]}" "$NO_LIMIT" \
-                        "$CHARGE_TO_FULL" "$HEALTH_TITLE" "$SETTINGS" \
-                        -- HelveticaNeue-Bold 13 "100%" "$condition_text" \
-                        -- HelveticaNeue-Medium 11 "$DETAILS" "$health_details"))
+                        "$CHARGE_TO_FULL" "$RESUME" "$FAILED" "$HEALTH_TITLE" "$SETTINGS" \
+                        -- HelveticaNeue-Bold 13 "100%" "$PAUSED" "$condition_text" \
+                        -- HelveticaNeue-Medium 11 "$DETAILS" "$PAUSED_DETAILS" "$health_details"))
   RIGHT_WIDTH=${widths[1]:-0}
   WIDTH=$((PADDING + ${widths[0]:-0} + GAP + RIGHT_WIDTH + PADDING))
   [ $((PADDING + ${widths[2]:-0} + PADDING)) -gt $WIDTH ] && WIDTH=$((PADDING + ${widths[2]:-0} + PADDING))
-  [ $MIN_WIDTH -gt $WIDTH ] && WIDTH=$MIN_WIDTH
+  [ $((MIN_WIDTH - 2 * INSET)) -gt $WIDTH ] && WIDTH=$((MIN_WIDTH - 2 * INSET))
 
+  space top 4
   text_row status "$STATUS" "$FONT" $STATUS_COLOR "$PERCENT%" "$FONT" $COLOR
   # Close to the state, as in claude.sh
   text_row details "$DETAILS" "$SMALL_FONT" $SUBTEXT
   sets+=(background.height=16)
   [ -n "$DETAILS" ] || sets+=(drawing=off)
 
-  # The limit: the current percentage on a background, also while Completa carica ora has paused
-  # it, when a click on it turns it back on
-  text_row limit "$LIMIT_TITLE" "$FONT" $TEXT
+  # The limit: the current percentage on a background. While Completa carica ora pauses it, the
+  # title says so, the percentage on a background is the one it goes back to and the row in place
+  # of Completa carica ora turns it back on now: until then the percentages are disabled, since a
+  # click on one would turn it back on too, at another percentage. Without that row, when this
+  # helper never saw the limit on, they are the way to turn it back on
+  if [ "$LIMIT_STATE" = paused ]; then
+    text_row limit "$LIMIT_TITLE" "$FONT" $TEXT "$PAUSED" "$FONT" $YELLOW
+  else
+    text_row limit "$LIMIT_TITLE" "$FONT" $TEXT
+  fi
   sets+=(background.height=$TITLE_HEIGHT)
   [ "$LIMIT_STATE" = none ] && sets+=(drawing=off)
-  local current text
+  text_row limit.details "$PAUSED_DETAILS" "$SMALL_FONT" $SUBTEXT
+  sets+=(background.height=16)
+  [ "$LIMIT_STATE" = paused ] || sets+=(drawing=off)
+  local current text disabled=""
+  [ "$LIMIT_STATE" = paused ] && [ "$LIMIT" -gt 0 ] && disabled=disabled
   for option in "${LIMITS[@]}"; do
     current=other text="$option%"
     [ "$option" = "$LIMIT" ] && current=current
     [ "$option" = 100 ] && text=$NO_LIMIT
-    button_row "limit.$option" "$text" $TEXT "limit $option" $current
+    button_row "limit.$option" "$text" $TEXT "limit $option" $current $disabled
     [ "$LIMIT_STATE" = none ] && sets+=(drawing=off)
   done
-  button_row full "$CHARGE_TO_FULL" $PRIMARY full other
-  [ "$LIMIT_STATE" = on ] && [ "$POWER" = ac ] && [ "$PERCENT" -lt 100 ] || sets+=(drawing=off)
+  if [ "$LIMIT_STATE" = paused ]; then
+    button_row full "$RESUME" $PRIMARY "limit $LIMIT" other
+    # Without the limit it goes back to, which this helper never saw on, nothing to turn back on
+    [ "$LIMIT" -gt 0 ] || sets+=(drawing=off)
+  else
+    button_row full "$CHARGE_TO_FULL" $PRIMARY full other
+    [ "$LIMIT_STATE" = on ] && [ "$POWER" = ac ] && [ "$PERCENT" -lt 100 ] || sets+=(drawing=off)
+  fi
 
   text_row health "$HEALTH_TITLE" "$FONT" $TEXT "$condition_text" "$FONT" $condition_color
   sets+=(background.height=$TITLE_HEIGHT)
@@ -263,6 +299,7 @@ render_popup() {
   text_row settings.gap "" "$SMALL_FONT" $SUBTEXT
   sets+=(background.height=10)
   button_row settings "$SETTINGS" $PRIMARY settings other
+  space bottom 4
 
   if [ "$(sketchybar --query battery | jq -r '.popup.items // [] | join(" ")')" = "${names[*]}" ]; then
     sketchybar "${sets[@]}"
@@ -287,8 +324,9 @@ update() {
   fi
 }
 
-# A popup row: a limit, Completa carica ora or the Battery settings
+# A popup row: a limit, Completa carica ora or the Battery settings, or a disabled one
 case "$1" in
+  disabled) exit 0 ;;
   limit | full | settings)
     case "$SENDER" in
       mouse.entered) sketchybar --set "$NAME" background.color=$HIGHLIGHT ;;
@@ -299,10 +337,12 @@ case "$1" in
           sketchybar --set "$NAME" background.color=$TRANSPARENT
         fi
         ;;
+      # Until the popup is set again the row says when macOS refused, e.g. to turn the limit back on
       mouse.clicked)
+        failed=""
         case "$1" in
-          limit) "$HELPER" limit "$2" ;;
-          full) "$HELPER" full ;;
+          limit) "$HELPER" limit "$2" || failed=1 ;;
+          full) "$HELPER" full || failed=1 ;;
           settings)
             sketchybar --set battery popup.drawing=off
             open "x-apple.systempreferences:com.apple.Battery-Settings.extension"
@@ -310,6 +350,7 @@ case "$1" in
             ;;
         esac
         update popup
+        [ -n "$failed" ] && sketchybar --set "$NAME" icon="$FAILED" icon.color=$RED
         ;;
     esac
     exit 0

@@ -174,7 +174,8 @@ brew=(
   background.height=18
   "${popup[@]}"
   popup.align=right
-  popup.height=28
+  # No minimum: brew.sh gives each row of the popup its own height
+  popup.height=0
 )
 sketchybar --add event brew_update \
            --add item brew right \
@@ -449,6 +450,58 @@ sketchybar --add event system_stats_change \
            --set system "${pill[@]}"
 pkill -x system_stats
 "$STATS_HELPER" watch > /dev/null 2>&1 &
+
+# Home Assistant: its logo with how many devices of the popup are on, gray while the server can't be
+# reached, and while the 3D printer prints its progress, in a pill of its own on the left. A click on either
+# opens the popup: the devices of home_assistant.conf, each with its state, where a click turns it
+# on or off (the plug of the printer at the second click), and a slider for the brightness, the
+# position of the blinds or the temperature; the last row opens the dashboard. The server and the
+# entities are those of the house, so home_assistant.conf isn't in the repo (see
+# home_assistant.conf.example): without it the items stay hidden.
+# A Swift helper (rebuilt when its source changes) follows them through the WebSocket API of Home
+# Assistant and triggers home_assistant_change when one changes, and calls the services; home.sh
+# starts it, with the server and the entities of home_assistant.conf. The token is in the keychain (see
+# helpers/home_assistant.swift). The icons are SF Symbols, which helpers/home_assistant_icons.js
+# draws into helpers/home_assistant_icons in each of these colors, and the logo, in the blue of Home
+# Assistant (brand) and gray. The logo is a trademark, so it isn't in the repo: the server has it,
+# as the icon of pinned tabs in Safari, and it is downloaded once into
+# helpers/home_assistant_logo.svg; until then, e.g. with the server unreachable, home.sh shows a house
+HA_HELPER="$CONFIG_DIR/helpers/home_assistant"
+if [ ! -x "$HA_HELPER" ] || [ "$HA_HELPER.swift" -nt "$HA_HELPER" ]; then
+  swiftc -O "$HA_HELPER.swift" -o "$HA_HELPER"
+fi
+HA_ICONS="$CONFIG_DIR/helpers/home_assistant_icons"
+HA_LOGO="$CONFIG_DIR/helpers/home_assistant_logo.svg"
+if [ ! -f "$HA_LOGO" ] && [ -f "$CONFIG_DIR/home_assistant.conf" ]; then
+  HA_SERVER="$(source "$CONFIG_DIR/home_assistant.conf" && echo "$SERVER")"
+  curl -sf --max-time 5 -o "$HA_LOGO.tmp" "$HA_SERVER/static/icons/mask-icon.svg" && mv "$HA_LOGO.tmp" "$HA_LOGO"
+  rm -f "$HA_LOGO.tmp"
+fi
+if [ "$HA_ICONS.js" -nt "$HA_ICONS/house.fill_text.png" ] || [ "$HA_LOGO" -nt "$HA_ICONS/logo_brand.png" ]; then
+  osascript -l JavaScript "$HA_ICONS.js" "$HA_ICONS" "$HA_LOGO" \
+            text=${TEXT#0xff} subtext=${SUBTEXT#0xff} overlay=${OVERLAY#0xff} primary=${PRIMARY#0xff} \
+            yellow=${YELLOW#0xff} peach=${PEACH#0xff} sky=${SKY#0xff} teal=${TEAL#0xff} \
+            green=${GREEN#0xff} red=${RED#0xff} brand=18BCF2
+fi
+# padding_right=8: the system bracket is on its right
+home=(
+  "${icon_pill[@]}"
+  padding_right=8
+  script="$PLUGIN_DIR/home.sh"
+  "${popup[@]}"
+  popup.align=right
+  # No minimum: home.sh gives each row of the popup its own height
+  popup.height=0
+)
+sketchybar --add event home_assistant_change \
+           --add item home right \
+           --set home "${home[@]}" \
+           --subscribe home home_assistant_change system_woke mouse.clicked mouse.exited.global \
+           --add item home_printer right \
+           --set home_printer "${icon_pill[@]}" drawing=off script="$PLUGIN_DIR/home.sh" \
+           --subscribe home_printer mouse.clicked
+pkill -x home_assistant
+"$PLUGIN_DIR/home.sh" watch
 
 ##### Force all scripts to run the first time #####
 sketchybar --update

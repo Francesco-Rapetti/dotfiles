@@ -19,7 +19,8 @@ CRITICAL=90  # and from this one red
 
 FONT="Helvetica Neue:Bold:13.0"  # the default label font
 SMALL_FONT="Helvetica Neue:Medium:11.0"
-PADDING=10         # inside the rows
+INSET=4            # between the rows and the edge of the popup, as in apple.sh
+PADDING=8          # inside the rows
 APP_ICON=16        # the column of the app icons
 GAP=8              # after the app icons, and between the names and the values
 NAME_WIDTH=190     # the column of the names, which helpers/system_stats cuts to fit it
@@ -73,14 +74,21 @@ size() {
 # Each render lists all the popup rows, as in claude.sh: row <name> <properties>... puts one at the
 # bottom. names, adds and sets are the rows, the commands that add them and the ones that set them.
 # The rows are always the same, the ones not needed hidden, as in battery.sh: removing the row under
-# the mouse would close the popup (mouse.exited.global)
+# the mouse would close the popup (mouse.exited.global). The rows are INSET from the edges, so the
+# highlight doesn't touch them
 names=() adds=() sets=()
 row() {
   local name="system.row.$1"
   shift
   names+=("$name")
   adds+=(--add item "$name" popup.cpu)
-  sets+=(--set "$name" drawing=on padding_left=0 padding_right=0 "$@")
+  sets+=(--set "$name" drawing=on padding_left=$INSET padding_right=$INSET "$@")
+}
+
+# space <name> <height>: room below the last row, as in apple.sh
+space() {
+  row "$1" width=$WIDTH icon.drawing=off label.drawing=off background.drawing=on \
+           background.color=$TRANSPARENT background.height=$2
 }
 
 # text_row <name> <height> <left> <left font> <left color> [<right> <right font> <right color>]
@@ -104,7 +112,7 @@ text_row() {
 bar_row() {
   local width=$((WIDTH - 2 * PADDING)) fill=(icon.background.drawing=off)
   [ "$2" -gt 0 ] && fill=(icon.background.drawing=on icon.background.color=$3)
-  row "$1" width=$width padding_left=$PADDING padding_right=$PADDING \
+  row "$1" width=$width padding_left=$((INSET + PADDING)) padding_right=$((INSET + PADDING)) \
            icon.drawing=on icon="" icon.width=$(($2 > 100 ? width : width * $2 / 100)) \
            icon.padding_left=0 icon.padding_right=0 "${fill[@]}" \
            icon.background.height=$BAR_HEIGHT icon.background.corner_radius=$((BAR_HEIGHT / 2)) \
@@ -185,6 +193,7 @@ render_popup() {
                background.drawing=on background.color=$TRANSPARENT background.corner_radius=6 \
                background.height=$ROW_HEIGHT script="$0 activity"
   sets+=(--subscribe system.row.activity mouse.entered mouse.exited mouse.clicked)
+  space bottom 4
 
   if [ "$(sketchybar --query cpu | jq -r '.popup.items // [] | join(" ")')" = "${names[*]}" ]; then
     sketchybar "$@" "${sets[@]}"
