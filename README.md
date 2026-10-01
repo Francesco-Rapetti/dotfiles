@@ -310,11 +310,20 @@ icona (un chip, un cubo, un banco di RAM) e la percentuale, aggiornate ogni 2 se
 diventano gialle dal 75% e rosse dal 90%. La memoria è la *Memoria utilizzata* di Monitoraggio
 Attività (memoria delle app, wired e compressa) sul totale, e ha il colore della *Pressione
 memoria*, come il suo grafico: macOS tiene la memoria quasi piena di cache e di pagine compresse,
-quindi un 85% bianco è normale, mentre giallo e rosso vogliono dire che inizia a mancare. Un clic
-apre Monitoraggio Attività. macOS non ha un comando da terminale per l'uso della GPU, quindi
-`sketchybarrc` compila `helpers/system_stats.swift` (non è nel repo), che legge i tre valori senza
-permessi di amministratore e avvisa SketchyBar quando cambiano. Se il driver della GPU non ne
-riporta l'uso la GPU non compare; su Apple Silicon c'è sempre.
+quindi un 85% bianco è normale, mentre giallo e rosso vogliono dire che inizia a mancare.
+Un clic su uno dei tre apre i dettagli, aggiornati ogni 2 secondi finché il popup resta aperto: per
+ciascuno una barra e le 5 app che lo usano di più, con la loro icona. I processi di un'app contano
+insieme (per esempio tutti gli helper di Chrome) e quelli fuori da un'app, come WindowServer, hanno
+il loro nome e nessuna icona. Per la CPU ci sono anche il tempo di sistema, utente e inattivo, e le
+app sono in percentuale di tutta la CPU come la barra, mentre Monitoraggio Attività conta ogni core
+come 100%. Per la GPU c'è il modello con i core, per la memoria i GB usati, lo swap, la pressione e
+la divisione in app, wired e compressa. Nella lista della memoria ci sono solo i tuoi processi:
+quanto ne usano quelli di sistema macOS lo dice solo con i permessi di amministratore. In fondo
+c'è *Apri Monitoraggio Attività*.
+macOS non ha un comando da terminale per l'uso della GPU, quindi `sketchybarrc` compila
+`helpers/system_stats.swift` (non è nel repo), che legge i valori senza permessi di amministratore
+e avvisa SketchyBar quando cambiano; i dettagli li legge solo mentre il popup è aperto. Se il
+driver della GPU non ne riporta l'uso la GPU non compare; su Apple Silicon c'è sempre.
 
 ## Da adattare al nuovo Mac
 
