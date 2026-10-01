@@ -12,16 +12,8 @@ LOCK="${TMPDIR:-/tmp}/sketchybar_claude.lock"
 LOGIN_LOCK="${TMPDIR:-/tmp}/sketchybar_claude_login.lock"
 LOG="$HOME/Library/Logs/sketchybar-claude.log"
 
-TEXT=0xffcdd6f4
-SUBTEXT=0xffa6adc8
-OVERLAY=0xff6c7086
-SURFACE=0xff313244
-HIGHLIGHT=0xff45475a
+source "$CONFIG_DIR/colors.sh"
 CLAUDE_ORANGE=0xffd97757
-YELLOW=0xfff9e2af
-RED=0xfff38ba8
-SKY=0xff89dceb
-TRANSPARENT=0x00000000
 
 WARNING=75   # from this percentage a limit turns yellow
 CRITICAL=90  # and from this one red
@@ -186,7 +178,7 @@ limit_rows() {
 
 # action_row <login|logout> <text>: the row lights up under the mouse and runs this on click
 action_row() {
-  row "$1" width=$WIDTH icon.drawing=on icon="$2" icon.font="$FONT" icon.color=$SKY \
+  row "$1" width=$WIDTH icon.drawing=on icon="$2" icon.font="$FONT" icon.color=$PRIMARY \
            icon.padding_left=$PADDING label.drawing=off script="$0 $1" \
            background.drawing=on background.color=$TRANSPARENT background.corner_radius=6 \
            background.height=$ROW_HEIGHT
@@ -229,7 +221,7 @@ logged_out() {
   else
     action_row login "$LOGIN"
   fi
-  show label.drawing=off
+  show label=""
 }
 
 # problem <message>: the account rows stay, with the message in place of the limits
@@ -237,7 +229,7 @@ problem() {
   text_row status "$1" "$FONT" $YELLOW
   sets+=(background.height=$LIMIT_HEIGHT)
   action_row logout "$LOGOUT"
-  show label.drawing=off
+  show label=""
 }
 
 # refresh [wait]: a click waits for the refresh in progress, which may have read the numbers before
@@ -251,7 +243,7 @@ refresh() {
     NAME_TEXT="Claude Code non trovato"
     layout --
     text_row status "$NAME_TEXT" "$FONT" $RED
-    show label.drawing=off
+    show label=""
     rm -f "$LOCK"
     return
   fi
@@ -298,7 +290,7 @@ refresh() {
       limit_rows session "Sessione (5 ore)" "$session_percent" "$session_text"
       limit_rows week "Settimanale" "$week_percent" "$week_text"
       action_row logout "$LOGOUT"
-      show label.drawing=on label="$session_percent% · $week_percent%" label.color=$label_color
+      show label="$session_percent% · $week_percent%" label.color=$label_color
       ;;
   esac
   rm -f "$LOCK"
@@ -336,12 +328,12 @@ if [ "$NAME" != "claude" ]; then
   CLAUDE="$(find_claude)" || exit 0
   case "$SENDER:$1" in
     mouse.entered:*) sketchybar --set "$NAME" background.color=$HIGHLIGHT ;;
-    mouse.exited:logout) sketchybar --set "$NAME" background.color=$TRANSPARENT icon="$LOGOUT" icon.color=$SKY ;;
+    mouse.exited:logout) sketchybar --set "$NAME" background.color=$TRANSPARENT icon="$LOGOUT" icon.color=$PRIMARY ;;
     mouse.exited:*) sketchybar --set "$NAME" background.color=$TRANSPARENT ;;
     mouse.clicked:login) login & ;;
     mouse.clicked:logout)
       if [ "$(sketchybar --query "$NAME" | jq -r .icon.value)" = "$CONFIRM_LOGOUT" ]; then
-        sketchybar --set "$NAME" icon="$LOGOUT" icon.color=$SKY
+        sketchybar --set "$NAME" icon="$LOGOUT" icon.color=$PRIMARY
         logout &
       else
         sketchybar --set "$NAME" icon="$CONFIRM_LOGOUT" icon.color=$RED

@@ -38,14 +38,7 @@ GALAXY_BUDS_ICON="$CONFIG_DIR/helpers/galaxy_buds_icon.png"
 AUDIO_ICONS="$CONFIG_DIR/helpers/audio_icons"
 HELPER="$CONFIG_DIR/helpers/audio_devices"
 
-TEXT=0xffcdd6f4
-SUBTEXT=0xffa6adc8
-SURFACE=0xff313244
-HIGHLIGHT=0xff45475a
-RED=0xfff38ba8
-YELLOW=0xfff9e2af
-SKY=0xff89dceb
-TRANSPARENT=0x00000000
+source "$CONFIG_DIR/colors.sh"
 
 FONT="Helvetica Neue:Bold:13.0"  # the default label font
 SMALL_FONT="Helvetica Neue:Medium:11.0"
@@ -274,7 +267,7 @@ volume_rows() {
   names+=("$name")
   adds+=(--add slider "$name" popup.audio_output $width)
   sets+=(--set "$name" padding_left=$PADDING padding_right=$PADDING icon.drawing=off label.drawing=off
-                       slider.width=$width slider.highlight_color=$SKY
+                       slider.width=$width slider.highlight_color=$PRIMARY
                        slider.background.height=$SLIDER_HEIGHT slider.background.color=$SURFACE
                        slider.background.corner_radius=$((SLIDER_HEIGHT / 2))
                        slider.knob="$KNOB" slider.knob.font="SF Pro:Regular:16.0" slider.knob.color=$TEXT
@@ -385,7 +378,7 @@ busy() {
 # bluetooth_row <index> <address> <connected> <type> <name>: a paired Bluetooth audio device, with
 # on the right what a click does, or what it is doing
 bluetooth_row() {
-  local action=connect text=$CONNECT color=$SKY
+  local action=connect text=$CONNECT color=$PRIMARY
   [ "$3" = 1 ] && action=disconnect text=$DISCONNECT
   case "$(busy "$2")" in
     connect) text=$CONNECTING color=$YELLOW ;;

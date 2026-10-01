@@ -12,15 +12,7 @@
 # of the popup with activity
 # The icons are SF Symbols, so they need the SF Pro font (brew install --cask font-sf-pro)
 
-TEXT=0xffcdd6f4
-SUBTEXT=0xffa6adc8
-SURFACE=0xff313244
-HIGHLIGHT=0xff45475a
-BLUE=0xff89b4fa
-YELLOW=0xfff9e2af
-RED=0xfff38ba8
-SKY=0xff89dceb
-TRANSPARENT=0x00000000
+source "$CONFIG_DIR/colors.sh"
 
 WARNING=75   # from this percentage CPU and GPU turn yellow
 CRITICAL=90  # and from this one red
@@ -161,13 +153,13 @@ app_rows() {
 }
 
 render_popup() {
-  section cpu "CPU" "$CPU" "$(color_for "$CPU" $TEXT)" "$(color_for "$CPU" $BLUE)" \
+  section cpu "CPU" "$CPU" "$(color_for "$CPU" $TEXT)" "$(color_for "$CPU" $PRIMARY)" \
           "Sistema $(percent "$CPU_SYSTEM") · Utente $(percent "$CPU_USER") · Inattivo $(percent "$CPU_IDLE")"
   app_rows cpu percent "$CPU_TOP"
 
   local model="$GPU_MODEL"
   [ -n "$GPU_CORES" ] && model="${model:+$model · }$GPU_CORES core"
-  section gpu "GPU" "${GPU:-0}" "$(color_for "${GPU:-0}" $TEXT)" "$(color_for "${GPU:-0}" $BLUE)" "$model"
+  section gpu "GPU" "${GPU:-0}" "$(color_for "${GPU:-0}" $TEXT)" "$(color_for "${GPU:-0}" $PRIMARY)" "$model"
   app_rows gpu percent "$GPU_TOP"
   local name
   if [ -z "$GPU" ]; then
@@ -181,14 +173,14 @@ render_popup() {
   esac
   used="$(size "$MEMORY_USED") di $((MEMORY_TOTAL / 1024)) GB"
   [ "${SWAP_USED:-0}" -gt 0 ] && used="$used · swap $(size "$SWAP_USED")"
-  section memory "Memoria" "$RAM" "$(pressure_color $TEXT)" "$(pressure_color $BLUE)" \
+  section memory "Memoria" "$RAM" "$(pressure_color $TEXT)" "$(pressure_color $PRIMARY)" \
           "$used · pressione $pressure" \
           "App $(size "$MEMORY_APP") · wired $(size "$MEMORY_WIRED") · compressa $(size "$MEMORY_COMPRESSED")"
   app_rows memory size "$MEMORY_TOP"
 
   # Apart from the sections, as in battery.sh
   text_row activity.gap 10 "" "$SMALL_FONT" $SUBTEXT
-  row activity width=$WIDTH icon.drawing=on icon="$ACTIVITY_MONITOR" icon.font="$FONT" icon.color=$SKY \
+  row activity width=$WIDTH icon.drawing=on icon="$ACTIVITY_MONITOR" icon.font="$FONT" icon.color=$PRIMARY \
                icon.padding_left=$PADDING icon.padding_right=0 icon.width=dynamic label.drawing=off \
                background.drawing=on background.color=$TRANSPARENT background.corner_radius=6 \
                background.height=$ROW_HEIGHT script="$0 activity"

@@ -9,14 +9,7 @@
 HELPER="$CONFIG_DIR/helpers/apple_menu"
 ICONS="${TMPDIR:-/tmp}/sketchybar_recent_items"
 
-TEXT=0xffcdd6f4
-SUBTEXT=0xffa6adc8
-OVERLAY=0xff6c7086
-SURFACE=0xff313244
-HIGHLIGHT=0xff45475a
-RED=0xfff38ba8
-CRUST=0xff11111b
-TRANSPARENT=0x00000000
+source "$CONFIG_DIR/colors.sh"
 
 FONT="Helvetica Neue:Bold:13.0"  # the default label font
 SMALL_FONT="Helvetica Neue:Medium:11.0"

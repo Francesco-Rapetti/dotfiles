@@ -5,17 +5,16 @@
 
 PLUGIN_DIR="$CONFIG_DIR/plugins"
 
-# Catppuccin Mocha (same palette as the borders gradient in aerospace.toml)
-BASE=0xe61e1e2e
-CRUST=0xff11111b
-SURFACE=0xff313244
-TEXT=0xffcdd6f4
-SUBTEXT=0xffa6adc8
-RED=0xfff38ba8
+# Catppuccin Mocha with mauve as PRIMARY, shared with the plugins
+source "$CONFIG_DIR/colors.sh"
 
 ##### Bar Appearance #####
-sketchybar --bar position=top height=32 color=$BASE blur_radius=20 \
-                 padding_left=8 padding_right=8
+# Transparent: each component floats on a background of its own (pill below). 40pt: 6 above the
+# 28 of the components and 6 below; aerospace.toml keeps the windows 8 below them.
+# With the padding of the first and last item, the components line up with the windows, 8 from
+# the edges (outer.left and outer.right in aerospace.toml)
+sketchybar --bar position=top height=40 color=$TRANSPARENT shadow=off \
+                 padding_left=8 padding_right=4
 
 ##### Defaults #####
 # Text only: the items that need an icon turn it on and use SF Symbols from SF Pro
@@ -41,6 +40,33 @@ with_icon=(
   label.padding_left=2
 )
 
+# The background of a component: the item's own when it is a single item, a bracket's when it is
+# made of more (the workspaces, CPU/GPU/memory, audio). SketchyBar draws the padding of an item
+# outside its own background but inside a bracket, which covers the padding of its first and last
+# member: 4, plus 6 of icon or label padding, from its edge to the content. So the single items have
+# 10 of icon or label padding (text_pill, icon_pill) and, on the side of a bracket, padding 8: the
+# gap between two single items, 4 + 4
+pill=(
+  background.drawing=on
+  background.color=$BASE
+  background.corner_radius=10
+  background.height=28
+  background.border_width=2
+  background.border_color=$SURFACE
+)
+text_pill=("${pill[@]}" label.padding_left=10 label.padding_right=10)
+icon_pill=("${with_icon[@]}" "${pill[@]}" icon.padding_left=10 label.padding_right=10)
+
+# The popups open under the bar, 6pt under the components, at the edge of the pill on the side
+# they are aligned to. BASE at 90% over the blur
+popup=(
+  popup.blur_radius=20
+  popup.background.color=0xe6${BASE#0xff}
+  popup.background.corner_radius=10
+  popup.background.border_width=2
+  popup.background.border_color=$SURFACE
+)
+
 ##### Apple Menu #####
 # The  menu of the menu bar, which SketchyBar covers: a click on the apple opens its commands.
 # macOS has no command line tool for Recent Items and Lock Screen, so apple.sh asks a Swift helper
@@ -49,24 +75,24 @@ APPLE_HELPER="$CONFIG_DIR/helpers/apple_menu"
 if [ ! -x "$APPLE_HELPER" ] || [ "$APPLE_HELPER.swift" -nt "$APPLE_HELPER" ]; then
   swiftc -O "$APPLE_HELPER.swift" -o "$APPLE_HELPER"
 fi
+# The only component without a pill: the logo stands on the desktop, as in the menu bar. No
+# padding_left, so that the popup, aligned to its padding, starts at the edge of the windows, and
+# the ink, 2pt after the icon padding, is that far from it too. 10 from the ink to the workspaces
 apple=(
   "${with_icon[@]}"
   icon=􀣺  # apple.logo
   icon.font="SF Pro:Semibold:16.0"
   icon.color=$TEXT
-  icon.padding_left=4
-  icon.padding_right=6
+  icon.padding_left=0
+  icon.padding_right=4
   label.drawing=off
+  padding_left=0
   padding_right=8
   script="$PLUGIN_DIR/apple.sh"
+  "${popup[@]}"
   popup.align=left
   # No minimum: apple.sh gives each row of the popup its own height
   popup.height=0
-  popup.blur_radius=20
-  popup.background.color=$BASE
-  popup.background.corner_radius=10
-  popup.background.border_width=2
-  popup.background.border_color=$SURFACE
 )
 sketchybar --add item apple left \
            --set apple "${apple[@]}" \
@@ -90,6 +116,13 @@ fi
 sketchybar --add event aerospace_workspace_change \
            --add event aerospace_windows_change
 
+# The workspaces share a pill, the bracket spaces between two empty items, spaces.start and
+# spaces.end: aerospace.sh adds and removes the icons between them, and an item can't be in two
+# brackets, its own space.<n>.group (the highlight of the focused one, on top since it comes later)
+# and this one. Their padding is the room around the highlight, 3pt as above and below it
+sketchybar --add item spaces.start left \
+           --set spaces.start label.drawing=off padding_left=0 padding_right=3
+
 for sid in 1 2 3 4 5 6 7 8 9; do
   workspace=(
     drawing=off
@@ -103,6 +136,11 @@ for sid in 1 2 3 4 5 6 7 8 9; do
              --set space.$sid "${workspace[@]}"
 done
 
+sketchybar --add item spaces.end left \
+           --set spaces.end label.drawing=off padding_left=3 padding_right=0 \
+           --add bracket spaces spaces.start spaces.end \
+           --set spaces "${pill[@]}"
+
 sketchybar --add item aerospace left \
            --set aerospace drawing=off script="$PLUGIN_DIR/aerospace.sh" \
            --subscribe aerospace aerospace_workspace_change aerospace_windows_change \
@@ -110,7 +148,7 @@ sketchybar --add item aerospace left \
 
 ##### Left Items #####
 sketchybar --add item front_app left \
-           --set front_app padding_left=12 script="$PLUGIN_DIR/front_app.sh" \
+           --set front_app "${text_pill[@]}" padding_left=8 script="$PLUGIN_DIR/front_app.sh" \
            --subscribe front_app front_app_switched
 
 ##### Right Items #####
@@ -134,13 +172,9 @@ brew=(
   background.color=$RED
   background.corner_radius=9
   background.height=18
+  "${popup[@]}"
   popup.align=right
   popup.height=28
-  popup.blur_radius=20
-  popup.background.color=$BASE
-  popup.background.corner_radius=10
-  popup.background.border_width=2
-  popup.background.border_color=$SURFACE
 )
 sketchybar --add event brew_update \
            --add item brew right \
@@ -154,14 +188,11 @@ if [ ! -x "$MONTH_HELPER" ] || [ "$MONTH_HELPER.swift" -nt "$MONTH_HELPER" ]; th
   swiftc -O "$MONTH_HELPER.swift" -o "$MONTH_HELPER"
 fi
 clock=(
+  "${text_pill[@]}"
   update_freq=10
   script="$PLUGIN_DIR/clock.sh"
+  "${popup[@]}"
   popup.align=right
-  popup.blur_radius=20
-  popup.background.color=$BASE
-  popup.background.corner_radius=10
-  popup.background.border_width=2
-  popup.background.border_color=$SURFACE
 )
 month=(
   label.drawing=off
@@ -197,17 +228,13 @@ if [ ! -f "$MEET_ICON" ] || [ "$CONFIG_DIR/helpers/meet_icon.js" -nt "$MEET_ICON
   osascript -l JavaScript "$CONFIG_DIR/helpers/meet_icon.js" "$MEET_ICON" A6E3A1
 fi
 calendar=(
-  "${with_icon[@]}"
+  "${icon_pill[@]}"
   drawing=off
   script="$PLUGIN_DIR/calendar.sh"
+  "${popup[@]}"
   popup.align=right
   # No minimum: calendar.sh gives each row of the popup its own height
   popup.height=0
-  popup.blur_radius=20
-  popup.background.color=$BASE
-  popup.background.corner_radius=10
-  popup.background.border_width=2
-  popup.background.border_color=$SURFACE
 )
 sketchybar --add event calendar_change \
            --add item calendar right \
@@ -235,16 +262,12 @@ if [ "$CONFIG_DIR/helpers/battery_icons.js" -nt "$BATTERY_ICONS/plug_text.png" ]
             text=CDD6F4 green=A6E3A1 yellow=F9E2AF
 fi
 battery=(
-  "${with_icon[@]}"
+  "${icon_pill[@]}"
   script="$PLUGIN_DIR/battery.sh"
+  "${popup[@]}"
   popup.align=right
   # No minimum: battery.sh gives each row of the popup its own height
   popup.height=0
-  popup.blur_radius=20
-  popup.background.color=$BASE
-  popup.background.corner_radius=10
-  popup.background.border_width=2
-  popup.background.border_color=$SURFACE
 )
 sketchybar --add event battery_change \
            --add item battery right \
@@ -255,9 +278,11 @@ pkill -x battery_charge
 "$BATTERY_HELPER" watch > /dev/null 2>&1 &
 
 # wifi_change fires whenever the primary connection changes (Wi-Fi or Ethernet);
-# update_freq catches the rest, e.g. Wi-Fi turned on without joining a network
+# update_freq catches the rest, e.g. Wi-Fi turned on without joining a network.
+# padding_left=8: the audio bracket is on its left
 sketchybar --add item network right \
-           --set network "${with_icon[@]}" update_freq=30 script="$PLUGIN_DIR/network.sh" \
+           --set network "${icon_pill[@]}" padding_left=8 update_freq=30 \
+                         script="$PLUGIN_DIR/network.sh" \
            --subscribe network wifi_change system_woke
 
 # Default audio output and input. CoreAudio has no command line tool, so a Swift helper
@@ -323,14 +348,10 @@ audio_output=(
   "${with_icon[@]}"
   update_freq=120
   script="$PLUGIN_DIR/audio.sh"
+  "${popup[@]}"
   popup.align=left
   # No minimum: audio.sh gives each row of the popup its own height
   popup.height=0
-  popup.blur_radius=20
-  popup.background.color=$BASE
-  popup.background.corner_radius=10
-  popup.background.border_width=2
-  popup.background.border_color=$SURFACE
 )
 sketchybar --add item audio_input_battery right \
            --set audio_input_battery "${audio_battery[@]}" script="$PLUGIN_DIR/audio.sh" \
@@ -344,7 +365,9 @@ sketchybar --add item audio_input_battery right \
            --add item audio_output right \
            --set audio_output "${audio_output[@]}" \
            --subscribe audio_output audio_device_change audio_volume_change system_woke \
-                                    mouse.clicked mouse.exited.global
+                                    mouse.clicked mouse.exited.global \
+           --add bracket audio audio_output audio_output_battery audio_input audio_input_battery \
+           --set audio "${pill[@]}"
 
 # Claude plan usage: how much of the 5-hour session and of the weekly limit is used, in yellow
 # from 75% and in red from 90%. A click opens the account, a bar and the time to the reset for
@@ -359,26 +382,27 @@ if [ -f "$CLAUDE_TRAY_ICON" ] && { [ "$CLAUDE_TRAY_ICON" -nt "$CLAUDE_ICON" ] \
   osascript -l JavaScript "$CONFIG_DIR/helpers/claude_icon.js" "$CLAUDE_TRAY_ICON" "$CLAUDE_ICON" D97757
 fi
 if [ -f "$CLAUDE_ICON" ]; then
-  # 72 px at 0.3: as tall as the SF Symbols of the other items
-  claude_icon=(icon="" icon.width=22 icon.background.drawing=on icon.background.image="$CLAUDE_ICON"
-               icon.background.image.scale=0.3)
+  # 72 px at 0.3: as tall as the SF Symbols of the other items. An image ignores the padding of the
+  # icon and starts at its left edge: image.padding_left leaves the room before the symbols
+  # (icon.padding_left plus their origin), in an icon as wide as that and the image
+  claude_icon=(icon="" icon.width=34 icon.background.drawing=on icon.background.image="$CLAUDE_ICON"
+               icon.background.image.scale=0.3 icon.background.image.padding_left=12)
 else
   claude_icon=(icon="✻" icon.color=0xffd97757)
 fi
+# Between the audio and the system brackets: 8 on both sides. The label is empty until claude.sh
+# has the numbers, but always drawn: its padding is the room after the icon
 claude=(
-  "${with_icon[@]}"
+  "${icon_pill[@]}"
   "${claude_icon[@]}"
-  label.drawing=off
+  padding_left=8
+  padding_right=8
   update_freq=300
   script="$PLUGIN_DIR/claude.sh"
+  "${popup[@]}"
   popup.align=right
   # No minimum: claude.sh gives each row of the popup its own height
   popup.height=0
-  popup.blur_radius=20
-  popup.background.color=$BASE
-  popup.background.corner_radius=10
-  popup.background.border_width=2
-  popup.background.border_color=$SURFACE
 )
 sketchybar --add event claude_update \
            --add item claude right \
@@ -406,14 +430,10 @@ system_stat=(
 cpu=(
   "${system_stat[@]}"
   icon=􀫥
+  "${popup[@]}"
   popup.align=left
   # No minimum: system.sh gives each row of the popup its own height
   popup.height=0
-  popup.blur_radius=20
-  popup.background.color=$BASE
-  popup.background.corner_radius=10
-  popup.background.border_width=2
-  popup.background.border_color=$SURFACE
 )
 sketchybar --add event system_stats_change \
            --add item ram right \
@@ -424,7 +444,9 @@ sketchybar --add event system_stats_change \
            --subscribe gpu mouse.clicked \
            --add item cpu right \
            --set cpu "${cpu[@]}" \
-           --subscribe cpu system_stats_change mouse.clicked mouse.exited.global
+           --subscribe cpu system_stats_change mouse.clicked mouse.exited.global \
+           --add bracket system cpu gpu ram \
+           --set system "${pill[@]}"
 pkill -x system_stats
 "$STATS_HELPER" watch > /dev/null 2>&1 &
 
