@@ -164,6 +164,31 @@ La rete mostra il nome del Wi-Fi, `Ethernet` quando c'è un cavo, `Non connesso`
 di sistema. Se un aggiornamento di macOS chiude anche questa strada, al posto del nome compare
 `Wi-Fi`.
 
+La batteria mostra la percentuale e, con l'icona, lo stato: a batteria il livello (giallo con il
+risparmio energetico, altrimenti rosso dal 20% in giù), in carica il fulmine, collegato ma non in
+carica la spina, gialla se macOS non dice perché. Il verde è la batteria di cui si sta occupando
+macOS: il fulmine mentre carica fino al limite di carica, la spina quando tiene ferma la carica, al
+limite, per il caricamento ottimizzato o nella *modalità desktop* di un Mac usato raramente a
+batteria. Un clic apre lo stato a parole (`Ferma al limite (80%)`, `Carica sospesa`,
+`Ancora 5 h 12 min`…) con la potenza dell'alimentatore, poi il **limite di carica** di macOS
+(Impostazioni di Sistema → Batteria, da macOS 26.4): un clic su 80, 85, 90, 95% o *Nessun limite*
+lo cambia, come in Impostazioni. Con il limite attivo c'è anche *Completa carica ora*, la stessa
+voce del menu della batteria di macOS: carica fino al 100%, e più tardi il limite torna da solo. In
+fondo lo stato della batteria (capacità massima e cicli, come in Impostazioni) e *Impostazioni
+Batteria…*.
+È il modo per tenere il Mac sempre collegato, per esempio chiuso con un monitor esterno, senza
+stressare la batteria e senza app come AlDente: il limite lo applica macOS, solo mentre è acceso
+(da spento la carica la gestisce il firmware), e ogni tanto carica comunque fino al 100% per tarare
+la batteria. 80% è il limite più basso che macOS permette.
+macOS non ha un comando da terminale per il limite (`pmset -g battlimit` lo mostra soltanto), quindi
+`sketchybarrc` compila `helpers/battery_charge.swift` (non è nel repo), che lo legge e lo cambia con
+il framework privato che usa Impostazioni di Sistema e resta in ascolto per aggiornare la barra
+appena cambia la batteria o il limite, anche da Impostazioni. macOS registra che l'helper non ha
+l'autorizzazione (*entitlement*) di Impostazioni, ma risponde lo stesso; se un aggiornamento di
+macOS lo impedisse, il limite resterebbe modificabile solo da Impostazioni. La spina è un simbolo SF
+che `helpers/battery_icons.js` disegna in `helpers/battery_icons` (non è nel repo), un'immagine per
+colore.
+
 L'audio mostra il dispositivo di uscita e quello di ingresso predefiniti, con un'icona per tipo
 (altoparlanti, cuffie, headset, AirPods, Galaxy Buds4 Pro, occhiali audio, monitor, AirPlay,
 microfono); il Mac, gli schermi e gli occhiali audio, che per uscita e ingresso avrebbero lo stesso
