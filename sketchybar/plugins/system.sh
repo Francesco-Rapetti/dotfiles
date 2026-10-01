@@ -4,12 +4,12 @@
 # seconds when they change. CPU and GPU turn yellow from 75% and red from 90%; the memory has the
 # color of its pressure, as in Activity Monitor: macOS keeps the memory nearly full with caches and
 # compressed pages, so the percentage alone says little. The GPU hides when macOS doesn't report it.
-# A click on any of them opens the popup of cpu: for each a bar, the details and the apps that use
-# it most, with their icon, then the row that opens Activity Monitor. While the popup is open the
-# helper adds the details to each update (SIGUSR1 turns them on, SIGUSR2 off), so the popup changes
-# with the bar
-# The cpu item runs this for the updates and the popup, gpu and ram for their clicks, the last row
-# of the popup with activity
+# A click on any of them opens the popup of the system bracket: for each a bar, the details and the
+# apps that use it most, with their icon, then the row that opens Activity Monitor. While the popup
+# is open the helper adds the details to each update (SIGUSR1 turns them on, SIGUSR2 off), so the
+# popup changes with the bar
+# The ram item, the only one on every display, runs this for the updates and the popup, cpu and gpu
+# for their clicks, the last row of the popup with activity
 # The icons are SF Symbols, so they need the SF Pro font (brew install --cask font-sf-pro)
 
 source "$CONFIG_DIR/colors.sh"
@@ -81,7 +81,7 @@ row() {
   local name="system.row.$1"
   shift
   names+=("$name")
-  adds+=(--add item "$name" popup.cpu)
+  adds+=(--add item "$name" popup.system)
   sets+=(--set "$name" drawing=on padding_left=$INSET padding_right=$INSET "$@")
 }
 
@@ -195,7 +195,7 @@ render_popup() {
   sets+=(--subscribe system.row.activity mouse.entered mouse.exited mouse.clicked)
   space bottom 4
 
-  if [ "$(sketchybar --query cpu | jq -r '.popup.items // [] | join(" ")')" = "${names[*]}" ]; then
+  if [ "$(sketchybar --query system | jq -r '.popup.items // [] | join(" ")')" = "${names[*]}" ]; then
     sketchybar "$@" "${sets[@]}"
   else
     sketchybar --remove '/system\.row\..*/' "${adds[@]}" "${sets[@]}" "$@"
@@ -203,7 +203,7 @@ render_popup() {
 }
 
 close_popup() {
-  sketchybar --set cpu popup.drawing=off
+  sketchybar --set system popup.drawing=off
   pkill -USR2 -x system_stats
 }
 
@@ -244,10 +244,10 @@ case "$SENDER" in
   # The popup shows the rows of the last time it was open until the details come, a quarter of a
   # second later
   mouse.clicked)
-    if [ "$(sketchybar --query cpu | jq -r .popup.drawing)" = on ]; then
+    if [ "$(sketchybar --query system | jq -r .popup.drawing)" = on ]; then
       close_popup
     else
-      sketchybar --set cpu popup.drawing=on
+      sketchybar --set system popup.drawing=on
       pkill -USR1 -x system_stats
     fi
     ;;

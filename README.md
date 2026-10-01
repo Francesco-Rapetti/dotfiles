@@ -129,11 +129,20 @@ all'estrema destra, e la finestra attiva con il bordo sfumato.
 
 La barra è trasparente: ogni elemento, tranne il logo Apple, ha uno sfondo suo, un rettangolo
 arrotondato che galleggia sopra la scrivania, allineato ai bordi delle finestre. Quelli fatti di più parti ne hanno uno solo:
-i workspace, CPU/GPU/memoria e l'audio. I colori sono la palette
+i workspace, CPU/GPU/memoria, l'audio, la rete e il calendario. I colori sono la palette
 [Catppuccin Mocha](https://catppuccin.com/palette/#flavor-mocha), con il mauve (`#cba6f7`) come
 colore principale: il workspace attivo, oggi nel calendario, le voci dei popup che fanno qualcosa,
 gli slider e le barre. Sono tutti in `sketchybar/colors.sh`: per cambiare il colore principale basta
 cambiare `PRIMARY`.
+
+![La barra sul MacBook](screenshots/notch.png)
+
+Sul display del MacBook il notch copre il centro della barra, e gli elementi di destra finirebbero
+sotto. Lì CPU e GPU spariscono e resta solo la memoria, della VPN resta solo lo scudo e del
+calendario solo l'orario del prossimo evento, colorato secondo quanto manca (vedi sotto); un clic
+apre gli stessi popup. Gli altri
+monitor mostrano tutto. `plugins/notch.sh` riconosce i display con il notch e sposta gli elementi
+quando colleghi o scolleghi un monitor; quali elementi spariscono lo decide la sua lista `ITEMS`.
 
 Se la barra è vuota o mancano i workspace:
 
@@ -186,7 +195,7 @@ di sistema. Se un aggiornamento di macOS chiude anche questa strada, al posto de
 `Wi-Fi`. Con una VPN attiva, nella stessa pillola, prima della rete come in macOS, compaiono uno
 scudo verde e il suo nome: quello delle VPN di Impostazioni di Sistema e delle app VPN (WireGuard,
 Tailscale…), che macOS elenca in `scutil --nc list`, oppure `VPN` per quelle che macOS non conosce
-ma che si vedono dal loro tunnel (`utun`). La barra si aggiorna subito quando cambia la connessione principale e comunque ogni 30
+ma che si vedono dal loro tunnel (`utun`); sul MacBook c'è solo lo scudo. La barra si aggiorna subito quando cambia la connessione principale e comunque ogni 30
 secondi: la VPN può comparire o sparire con quel ritardo.
 Un clic sulla rete o sulla VPN apre l'indirizzo IP del Mac, quello pubblico, il router e la VPN, con
 il suo indirizzo. L'IP pubblico lo chiede a [ipify](https://www.ipify.org) a ogni apertura del popup:
@@ -257,7 +266,9 @@ simbolo, hanno il loro con un altoparlante o un microfono. Se sono lo stesso dis
 esempio cuffie Bluetooth, compare solo quello di uscita, e se ha i due simboli con l'altoparlante e
 il microfono affiancati. Lo stesso vale per altoparlanti e microfono del Mac, che diventano il Mac
 stesso, con il suo nome: per esempio `MacBook Pro`, la parte comune a `Altoparlanti MacBook Pro` e
-`Microfono MacBook Pro`. Dopo il nome dei dispositivi Bluetooth c'è la batteria, se macOS la
+`Microfono MacBook Pro`. I nomi più lunghi di 14 caratteri si fermano all'ultima parola che ci sta,
+con i puntini (`AirPods Pro…` per `AirPods Pro di Luca`); nel popup sono interi. Dopo il nome dei
+dispositivi Bluetooth c'è la batteria, se macOS la
 conosce: un'icona col livello (rossa dal 20% in giù) e la percentuale, più piccole e grigie del nome
 e aggiornate ogni due minuti. Per gli auricolari conta il lato più scarico.
 Le icone sono simboli SF, tranne quelle che SF Symbols non ha, immagini che `sketchybarrc` genera
@@ -298,9 +309,11 @@ swiftc -O ~/Developer/dotfiles/sketchybar/helpers/audio_devices.swift -o ~/Devel
 ![Il calendario](screenshots/calendar.png)
 
 Il calendario mostra il prossimo evento della giornata e quanto manca
-(`14:30  Riunione · tra 20 min`, oppure `tra 1 h 20 min`). Mentre un evento è in corso mostra
-quello e quanto manca alla fine (`Riunione · fino alle 15:00 (ancora 20 min)`), a meno che il
-successivo non inizi prima che finisca.
+(`14:30  Riunione · tra 20 min`, oppure `tra 1 h 20 min`). L'icona e l'orario cambiano colore man
+mano che l'evento si avvicina: bianchi, gialli da 30 minuti prima, arancioni da 15 e rossi da 5
+(le soglie sono in cima a `plugins/calendar.sh`). Mentre un evento è in corso mostra quello e quanto
+manca alla fine (`14:30  Riunione · fino alle 15:00 (ancora 20 min)`), con l'orario in viola come
+nel popup, a meno che il successivo non inizi prima che finisca. Sul MacBook c'è solo l'orario.
 Quando non restano eventi con orario compaiono quelli di tutto il giorno, e se non ci sono neanche
 quelli l'elemento sparisce. Legge tutti i calendari dell'app Calendario, tranne gli eventi
 annullati o rifiutati.
@@ -377,12 +390,12 @@ barra dei menu dell'app Claude, che `helpers/claude_icon.js` colora in `helpers/
 ![CPU, GPU e memoria](screenshots/system.png)
 
 Alla sinistra di Claude c'è quanto stanno lavorando la CPU, la GPU e la memoria, ognuna con la sua
-icona (un chip, un cubo, un banco di RAM) e la percentuale, aggiornate ogni 2 secondi. CPU e GPU
-diventano gialle dal 75% e rosse dal 90%. La memoria è la *Memoria utilizzata* di Monitoraggio
+icona (un chip, un cubo, un banco di RAM) e la percentuale, aggiornate ogni 2 secondi; sul MacBook
+c'è solo la memoria. CPU e GPU diventano gialle dal 75% e rosse dal 90%. La memoria è la *Memoria utilizzata* di Monitoraggio
 Attività (memoria delle app, wired e compressa) sul totale, e ha il colore della *Pressione
 memoria*, come il suo grafico: macOS tiene la memoria quasi piena di cache e di pagine compresse,
 quindi un 85% bianco è normale, mentre giallo e rosso vogliono dire che inizia a mancare.
-Un clic su uno dei tre apre i dettagli, aggiornati ogni 2 secondi finché il popup resta aperto: per
+Un clic su uno dei tre (o sulla memoria, sul MacBook) apre i dettagli di tutti e tre, aggiornati ogni 2 secondi finché il popup resta aperto: per
 ciascuno una barra e le 5 app che lo usano di più, con la loro icona. I processi di un'app contano
 insieme (per esempio tutti gli helper di Chrome) e quelli fuori da un'app, come WindowServer, hanno
 il loro nome e nessuna icona. Per la CPU ci sono anche il tempo di sistema, utente e inattivo, e le

@@ -210,9 +210,12 @@ sketchybar --add item clock right \
 # macOS grants calendar access per app, so the helper is built into an app of its own and
 # started with `open`: it triggers calendar_change whenever the event to show or the events of the
 # day change. It is started without the shell's PATH, hence the path to sketchybar.
-# A click lists the events of the day, and a click on one joins its Google Meet call or shows it in
-# Calendar. The Meet logo is MeetingBar's, which helpers/meet_icon.js draws into helpers/meet_icon.png
-# (a camera without the app)
+# Two items in a pill: calendar_time, the icon and the time of the event, in a color that tells how
+# close it is, and calendar_title, the rest, which isn't on the display with the notch (see notch.sh
+# below). So the popup is the bracket's, which is on every display and keeps it at the edge of the
+# pill. A click on either lists the events of the day, and a click on one joins its Google Meet call
+# or shows it in Calendar. The Meet logo is MeetingBar's, which helpers/meet_icon.js draws into
+# helpers/meet_icon.png (a camera without the app)
 CALENDAR_SOURCE="$CONFIG_DIR/helpers/calendar_events"
 CALENDAR_APP="$CALENDAR_SOURCE.app"
 CALENDAR_HELPER="$CALENDAR_APP/Contents/MacOS/calendar_events"
@@ -228,19 +231,28 @@ if [ ! -f "$MEET_ICON" ] || [ "$CONFIG_DIR/helpers/meet_icon.js" -nt "$MEET_ICON
    || [ /Applications/MeetingBar.app/Contents/Resources/Assets.car -nt "$MEET_ICON" ]; then
   osascript -l JavaScript "$CONFIG_DIR/helpers/meet_icon.js" "$MEET_ICON" A6E3A1
 fi
-calendar=(
-  "${icon_pill[@]}"
+# calendar.sh moves calendar_title next to the time with a negative padding_left
+calendar_title=(
   drawing=off
+  label.padding_left=0
   script="$PLUGIN_DIR/calendar.sh"
+)
+calendar=(
+  "${pill[@]}"
   "${popup[@]}"
   popup.align=right
   # No minimum: calendar.sh gives each row of the popup its own height
   popup.height=0
 )
 sketchybar --add event calendar_change \
-           --add item calendar right \
-           --set calendar "${calendar[@]}" \
-           --subscribe calendar calendar_change mouse.clicked mouse.exited.global
+           --add item calendar_title right \
+           --set calendar_title "${calendar_title[@]}" \
+           --subscribe calendar_title mouse.clicked \
+           --add item calendar_time right \
+           --set calendar_time "${with_icon[@]}" drawing=off script="$PLUGIN_DIR/calendar.sh" \
+           --subscribe calendar_time calendar_change mouse.clicked mouse.exited.global \
+           --add bracket calendar calendar_time calendar_title \
+           --set calendar "${calendar[@]}"
 pkill -x calendar_events
 open -g -n "$CALENDAR_APP" --args "$(command -v sketchybar)"
 
@@ -281,8 +293,9 @@ pkill -x battery_charge
 "$BATTERY_HELPER" watch > /dev/null 2>&1 &
 
 # The connection: the Wi-Fi name, Ethernet, or why there is none, and before it, in the same pill,
-# the shield and the name of the VPN while one is on, as macOS puts the VPN before the Wi-Fi.
-# A click on either opens the IP address of the Mac, the public one, the router and the VPN, then
+# the shield and the name of the VPN while one is on, as macOS puts the VPN before the Wi-Fi. The
+# name is an item of its own, which isn't on the display with the notch (see notch.sh below).
+# A click on any of them opens the IP address of the Mac, the public one, the router and the VPN, then
 # the rows that turn Ethernet and the Wi-Fi off or on and the Wi-Fi networks around the Mac, where
 # a click joins one.
 # macOS gives the names of the networks only to an app that may use Location Services, which also
@@ -318,11 +331,22 @@ network=(
   # No minimum: network.sh gives each row of the popup its own height
   popup.height=0
 )
+# Without a label after it, the shield is as far from the next icon as a text is in a pill
+# (label.padding_right + padding_right); the name of the VPN moves back next to it, 2 after it as
+# the label of an icon (label.padding_left), with a negative padding_left
 vpn=(
   "${with_icon[@]}"
   drawing=off
   icon=􀞚  # lock.shield.fill
   icon.color=$GREEN
+  label.drawing=off
+  padding_right=10
+  script="$PLUGIN_DIR/network.sh"
+)
+vpn_name=(
+  drawing=off
+  padding_left=-8
+  label.padding_left=0
   script="$PLUGIN_DIR/network.sh"
 )
 # Two brackets side by side would touch: connection.gap keeps the audio one 8 away, as the other
@@ -332,10 +356,13 @@ sketchybar --add event wifi_networks_change \
            --set network "${network[@]}" \
            --subscribe network wifi_change wifi_networks_change system_woke \
                                mouse.clicked mouse.exited.global \
+           --add item network_vpn_name right \
+           --set network_vpn_name "${vpn_name[@]}" \
+           --subscribe network_vpn_name mouse.clicked \
            --add item network_vpn right \
            --set network_vpn "${vpn[@]}" \
            --subscribe network_vpn mouse.clicked \
-           --add bracket connection network_vpn network \
+           --add bracket connection network_vpn network_vpn_name network \
            --set connection "${pill[@]}" \
            --add item connection.gap right \
            --set connection.gap label.drawing=off padding_left=0 padding_right=8
@@ -469,25 +496,30 @@ sketchybar --add event claude_update \
 # CPU, GPU and memory usage, read every 2 seconds. macOS has no command line tool for the GPU, and
 # the CPU needs two readings to count the time it worked between them: a Swift helper (rebuilt
 # when its source changes) reads all three and triggers system_stats_change when one changes, and
-# system.sh, run by the cpu item, updates all three. The labels are as wide as "100%" (the digits
-# of Helvetica Neue are all as wide), so the bar doesn't move when a number gains or loses a digit.
+# system.sh, run by the ram item, the only one on every display (CPU and GPU aren't on the one with
+# the notch, see notch.sh below), updates all three. The labels of CPU and GPU are as wide as
+# "100%" (the digits of Helvetica Neue are all as wide), so the bar doesn't move when a number gains
+# or loses a digit. The memory always has two, short of 100%: its label is as wide as its text, so
+# that alone in its pill it is in the middle of it.
 # The icons are the SF Symbols cpu, cube and memorychip.
-# A click on any of them opens the popup of cpu, under the three: for each the details and the apps
-# that use it most, which the helper adds to its updates while the popup is open, and a row that
-# opens Activity Monitor
+# A click on any of them opens the popup of the bracket, under the three: for each the details and
+# the apps that use it most, which the helper adds to its updates while the popup is open, and a
+# row that opens Activity Monitor
 STATS_HELPER="$CONFIG_DIR/helpers/system_stats"
 if [ ! -x "$STATS_HELPER" ] || [ "$STATS_HELPER.swift" -nt "$STATS_HELPER" ]; then
   swiftc -O "$STATS_HELPER.swift" -o "$STATS_HELPER"
 fi
 system_stat=(
   "${with_icon[@]}"
-  label.width=43  # label.padding_left + 35 + label.padding_right
   script="$PLUGIN_DIR/system.sh"
 )
-cpu=(
-  "${system_stat[@]}"
-  icon=􀫥
+LABEL_100=43  # label.padding_left + 35 + label.padding_right
+system=(
+  "${pill[@]}"
   "${popup[@]}"
+  # SketchyBar moves a popup aligned left by the padding_left of its item: the bracket's would take
+  # it out of the pill
+  padding_left=0
   popup.align=left
   # No minimum: system.sh gives each row of the popup its own height
   popup.height=0
@@ -495,15 +527,15 @@ cpu=(
 sketchybar --add event system_stats_change \
            --add item ram right \
            --set ram "${system_stat[@]}" icon=􀫦 \
-           --subscribe ram mouse.clicked \
+           --subscribe ram system_stats_change mouse.clicked mouse.exited.global \
            --add item gpu right \
-           --set gpu "${system_stat[@]}" icon=􀐘 \
+           --set gpu "${system_stat[@]}" icon=􀐘 label.width=$LABEL_100 \
            --subscribe gpu mouse.clicked \
            --add item cpu right \
-           --set cpu "${cpu[@]}" \
-           --subscribe cpu system_stats_change mouse.clicked mouse.exited.global \
+           --set cpu "${system_stat[@]}" icon=􀫥 label.width=$LABEL_100 \
+           --subscribe cpu mouse.clicked \
            --add bracket system cpu gpu ram \
-           --set system "${pill[@]}"
+           --set system "${system[@]}"
 pkill -x system_stats
 "$STATS_HELPER" watch > /dev/null 2>&1 &
 
@@ -558,6 +590,16 @@ sketchybar --add event home_assistant_change \
            --subscribe home_printer mouse.clicked
 pkill -x home_assistant
 "$PLUGIN_DIR/home.sh" watch
+
+##### Notch #####
+# On a MacBook's display the notch covers the middle of the bar, and the items on the right would
+# end up under it: notch.sh shows CPU, GPU and the title of the event only on the displays without
+# one. There the memory stays alone, the VPN with only its shield and the event with only its time. SketchyBar numbers the
+# displays by their arrangement, which changes as displays come and go: display_change fires then,
+# and whenever another display becomes the active one
+sketchybar --add item notch left \
+           --set notch drawing=off script="$PLUGIN_DIR/notch.sh" \
+           --subscribe notch display_change
 
 ##### Force all scripts to run the first time #####
 sketchybar --update
