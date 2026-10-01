@@ -21,7 +21,8 @@ CRITICAL=90  # and from this one red
 FONT="Helvetica Neue:Bold:13.0"  # the default label font
 SMALL_FONT="Helvetica Neue:Medium:11.0"
 MIN_WIDTH=260
-PADDING=10       # inside the rows
+INSET=4          # between the rows and the edge of the popup, as in apple.sh
+PADDING=8        # inside the rows
 GAP=16           # between the two columns of a row
 ROW_HEIGHT=24    # of a row of text, unless it sets its own
 LIMIT_HEIGHT=34  # of the title of a limit, or of the message in its place, with room above
@@ -121,14 +122,21 @@ reset_text() {
 }
 
 # Each refresh lists all the popup rows: row <name> <properties>... puts one at the bottom.
-# names, adds and sets are the rows, the commands that add them and the ones that set them
+# names, adds and sets are the rows, the commands that add them and the ones that set them.
+# The rows are INSET from the edges, so the highlight doesn't touch them
 names=() adds=() sets=()
 row() {
   local name="claude.row.$1"
   shift
   names+=("$name")
   adds+=(--add item "$name" popup.claude)
-  sets+=(--set "$name" padding_left=0 padding_right=0 "$@")
+  sets+=(--set "$name" padding_left=$INSET padding_right=$INSET "$@")
+}
+
+# space <name> <height>: room above the first row and below the last one, as in apple.sh
+space() {
+  row "$1" width=$WIDTH icon.drawing=off label.drawing=off background.drawing=on \
+           background.color=$TRANSPARENT background.height=$2
 }
 
 # A row with a text on the left and, if given, one on the right: the widths are set by layout.
@@ -157,7 +165,7 @@ text_row() {
 bar_row() {
   local width=$((WIDTH - 2 * PADDING)) fill=(icon.background.drawing=off)
   [ "$2" -gt 0 ] && fill=(icon.background.drawing=on icon.background.color=$3)
-  row "$1" width=$width padding_left=$PADDING padding_right=$PADDING \
+  row "$1" width=$width padding_left=$((INSET + PADDING)) padding_right=$((INSET + PADDING)) \
            icon.drawing=on icon="" icon.width=$(($2 > 100 ? width : width * $2 / 100)) \
            icon.padding_left=0 icon.padding_right=0 "${fill[@]}" \
            icon.background.height=$BAR_HEIGHT icon.background.corner_radius=$((BAR_HEIGHT / 2)) \
@@ -196,13 +204,14 @@ layout() {
   WIDTH=$((PADDING + $(text_width HelveticaNeue-Bold 13 "$NAME_TEXT" "Sessione (5 ore)") + GAP + RIGHT_WIDTH + PADDING))
   local small_width=$((PADDING + $(text_width HelveticaNeue-Medium 11 "${small[@]}") + PADDING))
   [ $small_width -gt $WIDTH ] && WIDTH=$small_width
-  [ $MIN_WIDTH -gt $WIDTH ] && WIDTH=$MIN_WIDTH
+  [ $((MIN_WIDTH - 2 * INSET)) -gt $WIDTH ] && WIDTH=$((MIN_WIDTH - 2 * INSET))
 }
 
 # show <properties of the claude item>...: sets the popup rows, and removes and adds them only
 # when they aren't the ones already there. The click that opens the popup refreshes it, and
 # removing the row under the mouse would close it (mouse.exited.global)
 show() {
+  space bottom 4
   if [ "$(sketchybar --query claude | jq -r '.popup.items | join(" ")')" = "${names[*]}" ]; then
     sketchybar "${sets[@]}" --set claude "$@"
   else
@@ -213,6 +222,7 @@ show() {
 logged_out() {
   NAME_TEXT="Nessun account"
   layout -- "Accedi per vedere quanto hai usato Claude"
+  space top 4
   text_row status "$NAME_TEXT" "$FONT" $TEXT
   text_row hint "Accedi per vedere quanto hai usato Claude" "$SMALL_FONT" $SUBTEXT
   if [ -f "$LOGIN_LOCK" ] && kill -0 "$(cat "$LOGIN_LOCK")" 2>/dev/null; then
@@ -242,6 +252,7 @@ refresh() {
   if ! CLAUDE="$(find_claude)"; then
     NAME_TEXT="Claude Code non trovato"
     layout --
+    space top 4
     text_row status "$NAME_TEXT" "$FONT" $RED
     show label=""
     rm -f "$LOCK"
@@ -277,6 +288,7 @@ refresh() {
     session_text="$(reset_text "$session_reset")" week_text="$(reset_text "$week_reset")"
   fi
   layout "$plan" "100%" "$UPDATING" -- "$details" "$session_text" "$week_text"
+  space top 4
 
   text_row account "$NAME_TEXT" "$FONT" $TEXT "$plan" "$SMALL_FONT" $SUBTEXT
   # Close to the name, which leaves more room before the limits

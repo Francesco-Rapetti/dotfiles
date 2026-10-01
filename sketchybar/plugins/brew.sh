@@ -19,6 +19,7 @@ UPGRADING="aggiornamento…"
 UPGRADE_ALL="Aggiorna tutto"
 RESTART="Riavvia AeroSpace"
 RESTARTING="Riavvio di AeroSpace…"
+INSET=4    # between the rows and the edge of the popup, as in apple.sh
 PADDING=8  # inside the rows
 GAP=16     # between the name and the versions
 BADGE_WIDTH=18  # label.width of the brew item in sketchybarrc
@@ -111,8 +112,11 @@ render() {
     [ $action_width -gt $width ] && width=$action_width
   fi
 
+  # The rows are INSET from the edges, so the highlight doesn't touch them
   local row=(
     width=$width
+    padding_left=$INSET
+    padding_right=$INSET
     icon.font="Helvetica Neue:Bold:13.0"
     icon.color=$TEXT
     icon.padding_left=$PADDING
@@ -128,6 +132,10 @@ render() {
   )
   # "Riavvia AeroSpace" and "Aggiorna tutto" have no name column
   local action=("${row[@]}" label.color=$PRIMARY label.padding_left=$PADDING)
+  # Room above the first row and below the last one, as in apple.sh
+  local space=(width=$width padding_left=$INSET padding_right=$INSET icon.drawing=off label.drawing=off
+               background.drawing=on background.color=$TRANSPARENT background.height=4)
+  items+=(--add item brew.row.top popup.brew --set brew.row.top "${space[@]}")
 
   if [ -n "$2" ]; then
     items+=(--add item brew.row.restart popup.brew
@@ -150,6 +158,7 @@ render() {
             --set brew.row.all "${action[@]}" label="$UPGRADE_ALL" script="$0 ${all[*]}"
             --subscribe brew.row.all mouse.entered mouse.exited mouse.clicked)
   fi
+  items+=(--add item brew.row.bottom popup.brew --set brew.row.bottom "${space[@]}")
 
   # The digits are all the same width, so the padding that centers the number depends on how many
   sketchybar "${items[@]}" --set brew drawing=on label=$count background.color=$RED \

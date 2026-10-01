@@ -44,7 +44,8 @@ FONT="Helvetica Neue:Bold:13.0"  # the default label font
 SMALL_FONT="Helvetica Neue:Medium:11.0"
 BATTERY_FONT="SF Pro:Semibold:11.0"
 MIN_WIDTH=260
-PADDING=10         # inside the rows
+INSET=4            # between the rows and the edge of the popup, as in apple.sh
+PADDING=8          # inside the rows
 GAP=8              # between the icon and the name of a device
 COLUMN_GAP=16      # between the name of a device and the text on its right
 ICON_WIDTH=31      # the column of the device icons, as wide as the widest, the glasses
@@ -240,14 +241,21 @@ EOF
 }
 
 # Each render lists all the popup rows, as in claude.sh: row <name> <properties>... puts one at the
-# bottom. names, adds and sets are the rows, the commands that add them and the ones that set them
+# bottom. names, adds and sets are the rows, the commands that add them and the ones that set them.
+# The rows are INSET from the edges, so the highlight doesn't touch them
 names=() adds=() sets=()
 row() {
   local name="audio.$1"
   shift
   names+=("$name")
   adds+=(--add item "$name" popup.audio_output)
-  sets+=(--set "$name" padding_left=0 padding_right=0 "$@")
+  sets+=(--set "$name" padding_left=$INSET padding_right=$INSET "$@")
+}
+
+# space <name> <height>: room below the last row, as in apple.sh
+space() {
+  row "$1" width=$WIDTH icon.drawing=off label.drawing=off background.drawing=on \
+           background.color=$TRANSPARENT background.height=$2
 }
 
 # title_row <output|input> <title> <height>: the title, with the percentage of the volume on the
@@ -266,7 +274,8 @@ volume_rows() {
   local name="audio.$1.volume" width=$((WIDTH - 2 * PADDING))
   names+=("$name")
   adds+=(--add slider "$name" popup.audio_output $width)
-  sets+=(--set "$name" padding_left=$PADDING padding_right=$PADDING icon.drawing=off label.drawing=off
+  sets+=(--set "$name" padding_left=$((INSET + PADDING)) padding_right=$((INSET + PADDING))
+                       icon.drawing=off label.drawing=off
                        slider.width=$width slider.highlight_color=$PRIMARY
                        slider.background.height=$SLIDER_HEIGHT slider.background.color=$SURFACE
                        slider.background.corner_radius=$((SLIDER_HEIGHT / 2))
@@ -471,11 +480,12 @@ render_popup() {
   [ $((PADDING + ${widths[2]:-0} + GAP + PERCENT_WIDTH + PADDING)) -gt $WIDTH ] &&
     WIDTH=$((PADDING + ${widths[2]:-0} + GAP + PERCENT_WIDTH + PADDING))
   [ $((PADDING + ${widths[3]:-0} + PADDING)) -gt $WIDTH ] && WIDTH=$((PADDING + ${widths[3]:-0} + PADDING))
-  [ $MIN_WIDTH -gt $WIDTH ] && WIDTH=$MIN_WIDTH
+  [ $((MIN_WIDTH - 2 * INSET)) -gt $WIDTH ] && WIDTH=$((MIN_WIDTH - 2 * INSET))
 
   section output "$OUTPUT_TITLE" 30 "$(pool output $(($(grep -c . <<< "$outputs") + disconnected)))" "$outputs"
   section input "$INPUT_TITLE" 38 "$(pool input $(($(grep -c . <<< "$inputs") + disconnected)))" "$inputs"
   bluetooth_section "$(pool bluetooth "$(grep -c . <<< "$bluetooth")")" "$bluetooth"
+  space bottom 4
   if [ "$ITEMS" = "${names[*]}" ]; then
     sketchybar "${sets[@]}"
   else
