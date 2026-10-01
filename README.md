@@ -183,10 +183,10 @@ La rete mostra il nome del Wi-Fi, `Ethernet` quando c'è un cavo, `Non connesso`
 `Wi-Fi off` (rosso). Da macOS 14.4 il nome del Wi-Fi è oscurato in `networksetup`, `ipconfig` e
 `system_profiler`: `plugins/network.sh` lo legge dall'ultima scansione salvata nella configurazione
 di sistema. Se un aggiornamento di macOS chiude anche questa strada, al posto del nome compare
-`Wi-Fi`. Con una VPN attiva, nella stessa pillola compaiono uno scudo verde e il suo nome: quello
-delle VPN di Impostazioni di Sistema e delle app VPN (WireGuard, Tailscale…), che macOS elenca in
-`scutil --nc list`, oppure `VPN` per quelle che macOS non conosce ma che si vedono dal loro tunnel
-(`utun`). La barra si aggiorna subito quando cambia la connessione principale e comunque ogni 30
+`Wi-Fi`. Con una VPN attiva, nella stessa pillola, prima della rete come in macOS, compaiono uno
+scudo verde e il suo nome: quello delle VPN di Impostazioni di Sistema e delle app VPN (WireGuard,
+Tailscale…), che macOS elenca in `scutil --nc list`, oppure `VPN` per quelle che macOS non conosce
+ma che si vedono dal loro tunnel (`utun`). La barra si aggiorna subito quando cambia la connessione principale e comunque ogni 30
 secondi: la VPN può comparire o sparire con quel ritardo.
 Un clic sulla rete o sulla VPN apre l'indirizzo IP del Mac, quello pubblico, il router e la VPN, con
 il suo indirizzo. L'IP pubblico lo chiede a [ipify](https://www.ipify.org) a ogni apertura del popup:

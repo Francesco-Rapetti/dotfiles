@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Network: the network item shows the Wi-Fi name, Ethernet, or why there is no connection, and
-# network_vpn, after it in the same pill, the shield and the name of the VPN while one is on.
+# network_vpn, before it in the same pill, the shield and the name of the VPN while one is on.
 # A click on either opens the popup of network: the IP address of the Mac, the public one, the
 # router and the VPN; then Ethernet and Wi-Fi, each with a row that turns it off or on, and the Wi-Fi
 # networks around the Mac, those saved on it first, where a click joins one; last Impostazioni Rete….
@@ -37,7 +37,11 @@ GAP=16          # between the two columns of a row
 ICON_GAP=8      # between the icon and the name of a network
 ROW_HEIGHT=24   # of a row, unless it sets its own
 SECTION_GAP=10  # above Ethernet, Wi-Fi and Impostazioni Rete…
-OTHERS=10       # the networks not saved on the Mac, the strongest ones
+# The rows of the lists are always as many: the networks saved on the Mac, the others (the
+# strongest ones) and the wired services
+KNOWN=10
+OTHERS=10
+WIRED=3
 VPN_LENGTH=20   # characters of the name of the VPN in the bar
 
 ADDRESS_TITLE="Indirizzo IP"
@@ -202,6 +206,10 @@ quote() {
 # bottom. names, adds and sets are the rows, the commands that add them and the ones that set them,
 # and subscribes the rows that light up under the mouse and run a script on click; render_popup
 # empties them, since the click renders twice, the second time with the public address.
+# The rows are always the same, the ones not needed hidden, as in battery.sh: so they are added only
+# the first time. Removing a row under the mouse would close the popup (mouse.exited.global), and
+# SketchyBar 2.24 crashes when it removes rows while it is moving the windows of the bar, e.g.
+# because the name of the network changed (a window freed twice in window_defer_update).
 # The rows are INSET from the edges, so the highlight doesn't touch them
 row() {
   local name="network.row.$1"
@@ -269,35 +277,21 @@ network_row() {
            background.drawing=on background.corner_radius=6 background.height=$ROW_HEIGHT
 }
 
-# pool <prefix> <rows>: how many rows a list has, those left over hidden, as in audio.sh. While the
-# popup is open never fewer than it has already: SketchyBar can only add a row at the bottom, so a
-# new row in the middle means removing and adding again those after it, and removing the row under
-# the mouse closes the popup (mouse.exited.global)
-pool() {
-  local rows=0 item
-  if [ "$OPEN" = on ]; then
-    for item in $ITEMS; do
-      case "$item" in "network.row.$1."*[!0-9]* | "network.row.$1.") ;; "network.row.$1."*) rows=$((rows + 1)) ;; esac
-    done
-  fi
-  echo $(($2 > rows ? $2 : rows))
-}
-
 # joining: the network the popup is joining, until wifi_networks_change says how it went or, if it
 # never does, for two minutes
 joining() {
   [ -f "$JOIN_FILE" ] && [ $(($(date +%s) - $(stat -f %m "$JOIN_FILE"))) -lt 120 ] && cat "$JOIN_FILE"
 }
 
-# networks_rows <known|other> <title> <networks>: the title and the networks of the list, the one
-# the Mac is on lit as in audio.sh. A click on another one joins it
+# networks_rows <known|other> <title> <rows> <networks>: the title and the networks of the list, up
+# to <rows>, the one the Mac is on lit as in audio.sh. A click on another one joins it
 networks_rows() {
   local i=0 name level security known right font color
   text_row "$1" "$2" "$SMALL_FONT" $SUBTEXT
   sets+=(background.height=20)
-  [ -n "$3" ] || sets+=(drawing=off)
+  [ -n "$4" ] || sets+=(drawing=off)
   while IFS=$'\t' read -r name level security known; do
-    [ -n "$name" ] || continue
+    [ -n "$name" ] && [ $i -lt $3 ] || continue
     right="" font=$LOCK_FONT color=$SUBTEXT
     [ "$security" = open ] || right=$LOCK
     if [ "$name" = "$JOINING" ]; then
@@ -313,20 +307,19 @@ networks_rows() {
       button "$1.$i" "join $(quote "$name")"
     fi
     i=$((i + 1))
-  done <<< "$3"
-  local rows
-  rows=$(pool "$1" $i)
-  for ((; i < rows; i++)); do row "$1.$i" drawing=off; done
+  done <<< "$4"
+  for ((; i < $3; i++)); do row "$1.$i" drawing=off; done
 }
 
 render_popup() {
   local permission networks known other
   names=() adds=() sets=() subscribes=()
-  read -r OPEN ITEMS <<< "$(sketchybar --query network | jq -r '"\(.popup.drawing) \(.popup.items // [] | join(" "))"')"
+  local items
+  items="$(sketchybar --query network | jq -r '.popup.items // [] | join(" ")')"
   { IFS= read -r permission; networks="$(cat)"; } 2>/dev/null < "$NETWORKS_FILE"
   [ "$WIFI_POWER" = on ] || networks=""
   # The network the Mac is on first, as in the macOS menu
-  known="$(awk -F'\t' -v ssid="$SSID" '$4 == 1 && $1 == ssid' <<< "$networks"; awk -F'\t' -v ssid="$SSID" '$4 == 1 && $1 != ssid' <<< "$networks")"
+  known="$({ awk -F'\t' -v ssid="$SSID" '$4 == 1 && $1 == ssid' <<< "$networks"; awk -F'\t' -v ssid="$SSID" '$4 == 1 && $1 != ssid' <<< "$networks"; } | head -$KNOWN)"
   other="$(awk -F'\t' '$4 != 1' <<< "$networks" | head -$OTHERS)"
   JOINING="$(joining)"
 
@@ -357,7 +350,7 @@ render_popup() {
     else
       details[${#details[@]} - 1]+=$DISCONNECTED_TEXT
     fi
-  done <<< "$(wired_services)"
+  done <<< "$(wired_services | head -$WIRED)"
 
   # The icons are as wide as each other: their width in px is in the PNG header, 4 px per point
   local a b c d
@@ -397,7 +390,7 @@ render_popup() {
 
   # Ethernet: a row that turns each wired service off or on, as in System Settings (Disattiva
   # servizio), and what it is doing. The services come and go with their adapter
-  local i rows
+  local i
   for ((i = 0; i < ${#services[@]}; i++)); do
     space "ethernet.$i.gap" $SECTION_GAP
     if [ "${states[i]}" = 1 ]; then
@@ -410,8 +403,7 @@ render_popup() {
     text_row "ethernet.$i.details" "${details[i]}" "$SMALL_FONT" $SUBTEXT
     sets+=(background.height=16)
   done
-  rows=$(pool ethernet ${#services[@]})
-  for ((; i < rows; i++)); do
+  for ((; i < WIRED; i++)); do
     row "ethernet.$i.gap" drawing=off
     row "ethernet.$i" drawing=off
     row "ethernet.$i.details" drawing=off
@@ -433,8 +425,8 @@ render_popup() {
     text_row searching "$SEARCHING" "$SMALL_FONT" $SUBTEXT
     sets+=(background.height=20)
     [ "$WIFI_POWER" = on ] && [ "$permission" != denied ] && [ -z "$networks" ] || sets+=(drawing=off)
-    networks_rows known "$KNOWN_TITLE" "$known"
-    networks_rows other "$OTHER_TITLE" "$other"
+    networks_rows known "$KNOWN_TITLE" $KNOWN "$known"
+    networks_rows other "$OTHER_TITLE" $OTHERS "$other"
   fi
 
   space settings.gap $SECTION_GAP
@@ -442,7 +434,7 @@ render_popup() {
   button settings settings
   space bottom 4
 
-  if [ "$ITEMS" = "${names[*]}" ]; then
+  if [ "$items" = "${names[*]}" ]; then
     sketchybar "${sets[@]}" "${subscribes[@]}"
   else
     sketchybar --remove '/network\.row\..*/' "${adds[@]}" "${sets[@]}" "${subscribes[@]}"
