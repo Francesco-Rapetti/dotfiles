@@ -16,10 +16,11 @@ REPO="$(dirname "$DIR")"
 MOCK="$DIR/mock"
 CAPTURE="$DIR/capture"
 
-SHOTS=(bar notch apple workspaces home system docker claude audio network battery calendar clock brew)
+SHOTS=(bar notch apple workspaces home system docker claude audio network battery calendar clock notification)
 # The items of the two sides of the bar, for the shot of the whole bar
-LEFT=(apple spaces front_app)
-RIGHT=(home_printer home system docker claude audio connection battery calendar clock brew)
+LEFT=(apple spaces aerospace_mode front_app)
+RIGHT=(home_printer home system docker claude audio connection battery calendar clock notification_apps
+       notification_brew notification)
 
 # The time of the screenshots: today at 14:10, for the clock, the events and the resets of Claude.
 # Today, since the calendar of the clock is drawn for the real one
@@ -46,7 +47,8 @@ fi
 WORK="$(mktemp -d)"
 CONFIG="$WORK/sketchybar"
 mkdir -p "$CONFIG/helpers" "$WORK/tmp"
-ln -s "$REPO/sketchybar/colors.sh" "$REPO/sketchybar/plugins" "$MOCK/home_assistant.conf" "$CONFIG/"
+ln -s "$REPO/sketchybar/colors.sh" "$REPO/sketchybar/plugins" "$MOCK/home_assistant.conf" \
+      "$MOCK/notification_apps.conf" "$CONFIG/"
 ln -s "$REPO/sketchybar/helpers/"* "$CONFIG/helpers/"
 ln -sf "$MOCK/helpers/"* "$CONFIG/helpers/"
 ln -s "$REPO/Brewfile" "$WORK/"
@@ -59,7 +61,8 @@ restore() {
 trap restore EXIT
 
 # settle <pattern>: waits until no plugin whose command line matches is running, e.g. the refresh
-# that claude.sh and brew.sh run in the background, for up to the 60 seconds SketchyBar gives them
+# that claude.sh and notification.sh run in the background, for up to the 60 seconds SketchyBar
+# gives them
 settle() {
   local i
   for ((i = 0; i < 300; i++)); do
@@ -171,6 +174,7 @@ mock_bar() {
   settle '/plugins/[a-z_]*\.sh'
   run notch notch forced
   run aerospace aerospace forced
+  run aerospace aerospace_mode forced
   run front_app front_app front_app_switched INFO=Safari
   run home home forced
   run system ram system_stats_change "${SYSTEM[@]}"
@@ -181,7 +185,7 @@ mock_bar() {
   run battery battery forced
   run calendar calendar_time calendar_change "${CALENDAR[@]}"
   run clock clock_time routine
-  run brew brew brew_update
+  run notification notification brew_update
   settle "$CONFIG/plugins/"
 }
 
@@ -200,7 +204,14 @@ shot_apple() {
   run apple apple.recent mouse.clicked -- recent
   snap apple apple apple
 }
-shot_workspaces() { snap workspaces "" spaces front_app; }
+# The workspaces in the service mode, which the bar shows only while it is on
+shot_workspaces() {
+  run aerospace aerospace_mode aerospace_mode_change MODE=service
+  snap workspaces "" spaces aerospace_mode front_app
+  local status=$?
+  run aerospace aerospace_mode aerospace_mode_change MODE=main
+  return $status
+}
 shot_home() { snap home home home_printer home; }
 shot_system() { snap system system system; }
 # The click opens the popup and measures the CPU and the memory of the containers in the background,
@@ -230,7 +241,7 @@ shot_clock() {
   run clock clock_time mouse.clicked
   snap clock clock clock
 }
-shot_brew() { snap brew brew brew; }
+shot_notification() { snap notification notification notification_apps notification_brew notification; }
 
 mock_bar
 for shot in "${SHOTS[@]}"; do

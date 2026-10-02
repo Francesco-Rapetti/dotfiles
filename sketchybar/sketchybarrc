@@ -104,11 +104,12 @@ sketchybar --add item apple left \
 # which only returns the workspaces alive when the bar loads.
 # aerospace.sh runs for the hidden item aerospace: it shows, hides and highlights the numbers and
 # adds the icons of the windows after them, the focused window on a darker tile (a click on one
-# focuses that window). The icons follow the order of the windows on screen, which AeroSpace
+# focuses that window) and the one in fullscreen with the fullscreen symbol after its icon (alt-f in
+# aerospace.toml notifies it). The icons follow the order of the windows on screen, which AeroSpace
 # doesn't say: the helper window_order (rebuilt when its source changes) reads it from macOS.
 # space_windows_change: a window opened or closed. aerospace_windows_change: AeroSpace moved the
-# focus or a window (on-focus-changed and the alt-shift-<n> and alt-shift-a/s/w/d bindings in
-# aerospace.toml)
+# focus or a window, or put one in fullscreen (on-focus-changed and the alt-shift-<n>,
+# alt-shift-a/s/w/d and alt-f bindings in aerospace.toml)
 ORDER_HELPER="$CONFIG_DIR/helpers/window_order"
 if [ ! -x "$ORDER_HELPER" ] || [ "$ORDER_HELPER.swift" -nt "$ORDER_HELPER" ]; then
   swiftc -O "$ORDER_HELPER.swift" -o "$ORDER_HELPER"
@@ -146,43 +147,88 @@ sketchybar --add item aerospace left \
            --subscribe aerospace aerospace_workspace_change aerospace_windows_change \
                                  front_app_switched space_windows_change
 
+# The binding mode of AeroSpace, in a peach pill after the workspaces while it isn't main, e.g.
+# service (alt-shift-semicolon): a click goes back to main. aerospace.sh watch triggers
+# aerospace_mode_change whenever the mode changes. padding_left=8: the workspaces bracket is on
+# its left, and front_app keeps its own 8 on its right
+aerospace_mode=(
+  "${icon_pill[@]}"
+  drawing=off
+  padding_left=8
+  padding_right=0
+  icon=􀤋  # wrench.and.screwdriver.fill
+  icon.color=$CRUST
+  label.color=$CRUST
+  background.color=$PEACH
+  background.border_color=$PEACH
+  script="$PLUGIN_DIR/aerospace.sh"
+  click_script="aerospace mode main"
+)
+sketchybar --add event aerospace_mode_change \
+           --add item aerospace_mode left \
+           --set aerospace_mode "${aerospace_mode[@]}" \
+           --subscribe aerospace_mode aerospace_mode_change
+pkill -f "$PLUGIN_DIR/aerospace.sh watch"
+"$PLUGIN_DIR/aerospace.sh" watch > /dev/null 2>&1 &
+
 ##### Left Items #####
 sketchybar --add item front_app left \
            --set front_app "${text_pill[@]}" padding_left=8 script="$PLUGIN_DIR/front_app.sh" \
            --subscribe front_app front_app_switched
 
 ##### Right Items #####
-# Updates for the packages in ../Brewfile: a badge with how many, hidden when there are none.
-# A click lists them, a click on one upgrades it; until AeroSpace restarts on a new version the
-# list also has a row that restarts it. brew update runs hourly, on wake and on reload;
-# brew_update refreshes the list without it, e.g. once an upgrade is done
-# padding_left=8: the clock bracket is on its left
-brew=(
+# Notifications, two badges at the right end, each hidden when it has nothing to count: a green one
+# with what the apps of notification_apps.conf have to read, the badges on their icons in the Dock
+# (e.g. the unread messages of Slack), and a red one with the updates for the packages in
+# ../Brewfile. A click on either lists both: a click on an app opens it, a click on a package
+# upgrades it; until AeroSpace restarts on a new version the list also has a row that restarts it.
+# The popup is the one of the notification item, empty, on the right of the badges: so it opens at
+# the edge of the last one drawn, which with its padding_right of 4 ends 8 from the edge of the
+# screen as the other components. notification.sh runs brew update hourly, on wake and on reload;
+# brew_update refreshes the list without it, e.g. once an upgrade is done. macOS doesn't tell when
+# a badge changes: notification.sh watch reads them every 2 seconds and triggers
+# notification_change when they change
+notification=(
+  drawing=off
+  label.drawing=off
+  padding_left=0
+  update_freq=3600
+  script="$PLUGIN_DIR/notification.sh"
+  "${popup[@]}"
+  popup.align=right
+  # No minimum: notification.sh gives each row of the popup its own height
+  popup.height=0
+)
+# padding_left=8: the clock bracket is on their left; notification.sh moves the red one next to the
+# green one when both are drawn
+badge=(
   drawing=off
   padding_left=8
-  update_freq=3600
-  script="$PLUGIN_DIR/brew.sh"
+  padding_right=0
+  click_script="sketchybar --set notification popup.drawing=toggle"
   label.font="Helvetica Neue:Bold:11.0"
   label.color=$CRUST
-  label.width=18
-  # brew.sh centers the number with label.padding_left: label.align=center measures the digits by
-  # their ink but draws them from their origin, which moves each one by a different amount.
-  # y_offset lifts it by the room the line keeps for descenders, which digits don't have
+  # notification.sh centers the number with label.width and label.padding_left: label.align=center
+  # measures the digits by their ink but draws them from their origin, which moves each one by a
+  # different amount. y_offset lifts it by the room the line keeps for descenders, which digits
+  # don't have
   label.align=left
   label.padding_right=0
   label.y_offset=1
-  background.color=$RED
   background.corner_radius=9
   background.height=18
-  "${popup[@]}"
-  popup.align=right
-  # No minimum: brew.sh gives each row of the popup its own height
-  popup.height=0
 )
 sketchybar --add event brew_update \
-           --add item brew right \
-           --set brew "${brew[@]}" \
-           --subscribe brew brew_update system_woke mouse.clicked mouse.exited.global
+           --add event notification_change \
+           --add item notification right \
+           --set notification "${notification[@]}" \
+           --subscribe notification brew_update notification_change system_woke mouse.exited.global \
+           --add item notification_brew right \
+           --set notification_brew "${badge[@]}" background.color=$RED \
+           --add item notification_apps right \
+           --set notification_apps "${badge[@]}" background.color=$GREEN
+pkill -f "$PLUGIN_DIR/notification.sh watch"
+"$PLUGIN_DIR/notification.sh" watch > /dev/null 2>&1 &
 
 # The date and the hour, two items in a pill: clock_date isn't on the display with the notch (see
 # notch.sh below), so the popup is the bracket's, which is on every display and keeps it at the edge

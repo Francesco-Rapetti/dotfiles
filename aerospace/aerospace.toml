@@ -41,7 +41,8 @@ exec-on-workspace-change = [
 # Notify Sketchybar that the windows in the workspaces may have changed, for the icons after the
 # numbers: the focus moves when a window opens or closes. The alt-shift-<n> bindings notify it too,
 # since a window moved away may leave no window to focus, and so do alt-shift-a/s/w/d, since a
-# window moved in its workspace keeps the focus but changes the order of the icons
+# window moved in its workspace keeps the focus but changes the order of the icons, and alt-f, since
+# the window in fullscreen keeps it too but gets the fullscreen symbol
 on-focus-changed = ['exec-and-forget sketchybar --trigger aerospace_windows_change']
 
 # Normalizations. See: https://nikitabobko.github.io/AeroSpace/guide#normalization
@@ -194,7 +195,7 @@ alt-shift-semicolon = 'mode service'
 # custom commands
 alt-shift-space = 'layout floating tiling'
 alt-backspace = 'close'
-alt-f = 'fullscreen'
+alt-f = ['fullscreen', 'exec-and-forget sketchybar --trigger aerospace_windows_change']
 
 # 'service' binding mode declaration.
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes

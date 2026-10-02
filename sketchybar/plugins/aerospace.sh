@@ -8,7 +8,35 @@
 # space.<n>.win.<i> after space.<n>, drawing the app icon, and the bracket space.<n>.group
 # draws the highlight behind the number and the icons.
 # AeroSpace lists the windows by app name: helpers/window_order puts those of each workspace in the
-# order they have on screen, and remembers it for the workspaces that aren't
+# order they have on screen, and remembers it for the workspaces that aren't.
+# A window in fullscreen (alt-f) has the fullscreen symbol after its icon.
+# The item aerospace_mode runs it too: the binding mode, hidden in main. sketchybarrc runs it with
+# watch, which follows `aerospace subscribe mode-changed` and triggers aerospace_mode_change with
+# the mode: AeroSpace has no callback for the modes, and the bindings that leave service are many
+
+# AeroSpace sends the mode at once and then whenever it changes, as {"_event":"mode-changed",
+# "mode":"service"}. If AeroSpace quits, it waits for it to come back
+if [ "$1" = watch ]; then
+  trap 'pkill -P $$; exit 0' TERM INT HUP
+  while :; do
+    while read -r event; do
+      sketchybar --trigger aerospace_mode_change MODE="$(jq -r .mode <<< "$event")"
+    done < <(exec aerospace subscribe mode-changed 2>/dev/null)
+    sleep 5 &
+    wait $!
+  done
+fi
+
+# $MODE is only set by the aerospace_mode_change event, so query AeroSpace directly on startup
+if [ "$NAME" = aerospace_mode ]; then
+  mode="${MODE:-$(aerospace list-modes --current)}"
+  if [ "$mode" = main ]; then
+    sketchybar --set "$NAME" drawing=off
+  else
+    sketchybar --set "$NAME" drawing=on label="$mode"
+  fi
+  exit 0
+fi
 
 # A new window sends several events at once: the runs take turns, because each one adds and
 # removes items according to the ones it finds in the bar
@@ -19,9 +47,10 @@ source "$CONFIG_DIR/colors.sh"
 # BASE at 35% on PRIMARY, the tile of the focused window
 TILE=0x59${BASE#0xff}
 
-# The app icon, 19pt at this scale, centered in the 23pt of the label: the room around it shows
-# the tile, which is the background of the item. The label is empty, or the initial of the app for
-# the windows without a bundle id.
+# The app icon, 19pt at this scale, centered in the 23pt of the icon: the room around it shows
+# the tile, which is the background of the item. The icon is empty, or the initial of the app for
+# the windows without a bundle id. The label is the fullscreen symbol, on the tile too, drawn only
+# for the window in fullscreen.
 # Not width=23: with a fixed width SketchyBar leaves out the padding_right of the last icon when it
 # places the next number, but the bracket still covers it
 window=(
@@ -32,10 +61,16 @@ window=(
   background.corner_radius=5
   background.image.scale=0.6
   background.image.padding_left=2
-  label.width=23
-  label.align=center
+  icon.drawing=on
+  icon.font="Helvetica Neue:Bold:13.0"
+  icon.width=23
+  icon.align=center
+  icon.padding_left=0
+  icon.padding_right=0
+  label=􀅊  # arrow.up.left.and.arrow.down.right
+  label.font="SF Pro:Heavy:11.0"
   label.padding_left=0
-  label.padding_right=0
+  label.padding_right=4
 )
 
 # Inside the pill of the workspaces (the bracket spaces of sketchybarrc), 3pt from its edges: the
@@ -48,7 +83,7 @@ group=(
 
 # window_order takes a while, waiting for the windows to stop moving: it runs alongside the other
 # queries
-exec 3< <(aerospace list-windows --all --format '%{workspace}|%{window-id}|%{app-bundle-id}|%{app-name}' \
+exec 3< <(aerospace list-windows --all --format '%{workspace}|%{window-id}|%{window-is-fullscreen}|%{app-bundle-id}|%{app-name}' \
             | "$CONFIG_DIR/helpers/window_order" "${TMPDIR:-/tmp}/sketchybar_aerospace_order")
 # $FOCUSED_WORKSPACE is only set by the aerospace_workspace_change event,
 # so query AeroSpace directly on startup and on the other events
@@ -69,23 +104,29 @@ for sid in 1 2 3 4 5 6 7 8 9; do
   existing=$(grep -c "^space\.$sid\.win\." <<< "$ITEMS")
   members=(space.$sid)
   windows=()
-  while IFS='|' read -r _ id bundle app; do
+  while IFS='|' read -r _ id fullscreen bundle app; do
     i=$((${#members[@]} - 1))
     item=space.$sid.win.$i
     if [ "$i" -ge "$existing" ]; then
       windows+=(--add item $item left --move $item after "${members[$i]}" --set $item "${window[@]}")
     fi
     if [ -n "$bundle" ] && [ "$bundle" != NULL-APP-BUNDLE-ID ]; then
-      windows+=(--set $item background.image="app.$bundle" label="")
+      windows+=(--set $item background.image="app.$bundle" icon="")
     else
-      windows+=(--set $item background.image.drawing=off label="$(tr '[:lower:]' '[:upper:]' <<< "${app:0:1}")")
+      windows+=(--set $item background.image.drawing=off icon="$(tr '[:lower:]' '[:upper:]' <<< "${app:0:1}")")
     fi
     if [ "$id" = "$FOCUSED_WINDOW" ]; then
       tile=$TILE
     else
       tile=0x00000000
     fi
-    windows+=(--set $item padding_right=0 background.color=$tile label.color=$color click_script="aerospace focus --window-id $id")
+    if [ "$fullscreen" = true ]; then
+      full=on
+    else
+      full=off
+    fi
+    windows+=(--set $item padding_right=0 background.color=$tile icon.color=$color label.color=$color
+              label.drawing=$full click_script="aerospace focus --window-id $id")
     members+=($item)
   done < <(grep "^$sid|" <<< "$WINDOWS")
   count=$((${#members[@]} - 1))

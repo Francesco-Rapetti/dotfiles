@@ -13,6 +13,7 @@ dotfiles/
 ├── sketchybar/                → ~/.config/sketchybar
 │   ├── sketchybarrc
 │   ├── colors.sh              (la palette, condivisa da sketchybarrc e dai plugin)
+│   ├── notification_apps.conf (le app di cui contare le notifiche)
 │   ├── home_assistant.conf.example  (da copiare in home_assistant.conf, che non è nel repo)
 │   ├── plugins/*.sh
 │   └── helpers/*.swift, *.plist, *.js  (compilati o eseguiti da sketchybarrc)
@@ -124,8 +125,8 @@ aerospace config --config-path
 
 Deve stampare `~/.config/aerospace/aerospace.toml`. In alto dovresti vedere la barra con il logo
 Apple, i workspace, l'app attiva, il logo di Home Assistant, l'uso di CPU, GPU e memoria, Docker (se è in esecuzione), l'uso di Claude, l'uscita e l'ingresso audio, la rete (con la
-VPN, se attiva), la batteria, il prossimo evento del calendario, l'orologio e, se ci sono aggiornamenti, il loro pallino
-all'estrema destra, e la finestra attiva con il bordo sfumato.
+VPN, se attiva), la batteria, il prossimo evento del calendario, l'orologio e, se ci sono notifiche
+o aggiornamenti, i loro pallini all'estrema destra, e la finestra attiva con il bordo sfumato.
 
 La barra è trasparente: ogni elemento, tranne il logo Apple, ha uno sfondo suo, un rettangolo
 arrotondato che galleggia sopra la scrivania, allineato ai bordi delle finestre. Quelli fatti di più parti ne hanno uno solo:
@@ -168,15 +169,21 @@ compila `helpers/apple_menu.swift` (non è nel repo). La prima volta che usi *Us
 *Riavvia…*, *Spegni…* o il logout macOS potrebbe chiedere di consentire a SketchyBar di controllare
 loginwindow: scegli *Consenti*.
 
-![I workspace e l'app attiva](screenshots/workspaces.png)
+![I workspace, la mode service e l'app attiva](screenshots/workspaces.png)
 
 Ogni workspace mostra il numero seguito dall'icona di ciascuna delle sue finestre, la stessa del
 Dock: tre finestre di VS Code sono tre icone. Quello attivo è evidenziato insieme alle sue icone, e
-quelli vuoti non compaiono; la finestra attiva ha un riquadro più scuro dietro la sua icona. Un clic
-sul numero apre il workspace, un clic su un'icona porta a quella finestra. Le app senza bundle id
-mostrano l'iniziale del nome. Le icone si aggiornano quando una finestra si apre, si chiude o cambia
-workspace: per questo `aerospace.toml` avvisa SketchyBar a ogni cambio di focus (`on-focus-changed`)
-e con `alt-shift-1` … `alt-shift-9`.
+quelli vuoti non compaiono; la finestra attiva ha un riquadro più scuro dietro la sua icona, e quella
+a tutto schermo con `alt-f` ha dopo l'icona le due frecce del fullscreen. Un clic sul numero apre il
+workspace, un clic su un'icona porta a quella finestra. Le app senza bundle id mostrano l'iniziale
+del nome. Le icone si aggiornano quando una finestra si apre, si chiude o cambia workspace: per
+questo `aerospace.toml` avvisa SketchyBar a ogni cambio di focus (`on-focus-changed`), con
+`alt-shift-1` … `alt-shift-9` e con `alt-f`, che non sposta il focus.
+
+Quando AeroSpace non è nella mode `main`, ad esempio nella `service` che apre `alt-shift-;`, dopo i
+workspace compare una pillola arancione con il nome della mode; un clic su questa torna a `main`.
+AeroSpace non ha un callback per i cambi di mode, quindi `sketchybarrc` avvia
+`plugins/aerospace.sh watch`, che li segue con `aerospace subscribe mode-changed`.
 
 Le icone seguono l'ordine delle finestre sullo schermo, da sinistra a destra e, in una colonna,
 dall'alto in basso; spostando una finestra con `alt-shift-a/s/w/d` si spostano anche loro.
@@ -348,28 +355,43 @@ sul mese apre Calendario. SketchyBar non sa disporre gli elementi di un popup in
 il mese è un'immagine che `helpers/calendar_month.swift` disegna ogni volta che si apre, con i pixel
 del monitor su cui si apre (compilato da `sketchybarrc`, non è nel repo).
 
-![Gli aggiornamenti di Homebrew](screenshots/brew.png)
+![Le notifiche e gli aggiornamenti di Homebrew](screenshots/notification.png)
 
-Quando uno dei pacchetti del `Brewfile` ha una nuova versione su Homebrew, all'estrema destra
-compare un pallino rosso con quanti sono. Un clic apre l'elenco con la versione installata e quella
-nuova (`1.8.4 → 1.9.0`), un clic su un pacchetto lo aggiorna e, se sono più di uno, c'è anche
-*Aggiorna tutto*, che aggiorna solo quelli dell'elenco: gli altri pacchetti di Homebrew restano
-com'erano, tranne le dipendenze di cui una nuova versione ha bisogno. Durante l'aggiornamento il
-pallino diventa giallo e gli altri clic vengono ignorati. `plugins/brew.sh` esegue `brew update`
-ogni ora, al risveglio e a ogni `sketchybar --reload`. Dopo l'aggiornamento riavvia `sketchybar` e
-`borders` con i loro comandi di `after-startup-command` in `aerospace.toml`, così usano subito la
-nuova versione. Se un aggiornamento non riesce compare una notifica, e un clic apre l'output di brew
+All'estrema destra ci sono le notifiche, due pallini che compaiono solo quando hanno qualcosa da
+contare: uno verde per le notifiche da leggere delle app scelte e uno rosso per gli aggiornamenti
+di Homebrew. Un clic su uno dei due apre lo stesso elenco: prima le app, poi i pacchetti.
+
+Il pallino verde somma i badge che le app di `sketchybar/notification_apps.conf` hanno sulla loro
+icona nel Dock, per esempio i messaggi non letti di Slack: si aggiorna entro 2 secondi e sparisce
+quando li leggi nell'app. Un badge senza numero, come il punto di Slack per i canali non letti,
+conta uno. Nell'elenco ogni app ha la sua icona e il suo badge, e un clic la apre. Nel file c'è
+un'app per riga, con il suo bundle id (`osascript -e 'id of app "Nome App"'`) o il nome; le
+modifiche valgono subito, senza ricaricare la barra. macOS non avvisa quando cambia un badge, quindi
+`sketchybarrc` avvia `plugins/notification.sh watch`, che li legge con `lsappinfo` ogni 2 secondi e
+aggiorna la barra quando cambiano. Le app chiuse non hanno badge, e un'app che non ne mette
+nessuno sull'icona non si può seguire così: il testo delle notifiche è nel database del Centro
+Notifiche, che macOS apre solo con l'Accesso completo al disco.
+
+Il pallino rosso compare quando uno dei pacchetti del `Brewfile` ha una nuova versione su Homebrew,
+con quanti sono. Nell'elenco ognuno ha la versione installata e quella nuova (`1.8.4 → 1.9.0`), un
+clic su un pacchetto lo aggiorna e, se sono più di uno, c'è anche *Aggiorna tutto*, che aggiorna
+solo quelli dell'elenco: gli altri pacchetti di Homebrew restano com'erano, tranne le dipendenze di
+cui una nuova versione ha bisogno. Durante l'aggiornamento il pallino diventa giallo e gli altri
+clic sui pacchetti vengono ignorati. `plugins/notification.sh` esegue `brew update` ogni ora, al
+risveglio e a ogni `sketchybar --reload`. Dopo l'aggiornamento riavvia `sketchybar` e `borders` con
+i loro comandi di `after-startup-command` in `aerospace.toml`, così usano subito la nuova
+versione. Se un aggiornamento non riesce compare una notifica, e un clic apre l'output di brew
 (`~/Library/Logs/sketchybar-brew.log`). `font-sf-pro` ha versione `latest`, quindi Homebrew non lo
 segnala mai come da aggiornare.
 
 AeroSpace invece continua con la vecchia versione finché non si riavvia, e riavviarlo da solo in
 mezzo al lavoro rimescolerebbe le finestre. Dopo averlo aggiornato compare una notifica: un clic
-apre l'elenco, che in cima ha *Riavvia AeroSpace*, e il pallino la conta finché non lo riavvii. La
-riga c'è anche se hai aggiornato AeroSpace da terminale, perché `aerospace --version` mostra sia la
-versione installata sia quella in esecuzione. Il riavvio disattiva AeroSpace, che così rimette sullo
-schermo le finestre dei workspace nascosti, poi lo chiude e lo riapre: ogni finestra finisce nel
-workspace visibile sul suo monitor, tranne le app con una regola `on-window-detected`, che tornano
-nel loro. Le notifiche le manda `terminal-notifier`: alla prima macOS chiede il permesso, scegli
+apre l'elenco, che prima dei pacchetti ha *Riavvia AeroSpace*, e il pallino rosso la conta finché
+non lo riavvii. La riga c'è anche se hai aggiornato AeroSpace da terminale, perché
+`aerospace --version` mostra sia la versione installata sia quella in esecuzione. Il riavvio
+disattiva AeroSpace, che così rimette sullo schermo le finestre dei workspace nascosti, poi lo
+chiude e lo riapre: ogni finestra finisce nel workspace visibile sul suo monitor, tranne le app con
+una regola `on-window-detected`, che tornano nel loro. Le notifiche le manda `terminal-notifier`: alla prima macOS chiede il permesso, scegli
 *Consenti*.
 
 ![L'uso di Claude](screenshots/claude.png)
@@ -532,7 +554,7 @@ Infine `git commit` e `git push` come in qualsiasi repo.
 
 Le immagini del README sono in `screenshots/` e le fa `screenshots/take.sh` con dati inventati:
 fa girare i plugin come li fa girare SketchyBar, sulla barra vera, ma con gli helper e i comandi di
-`screenshots/mock` (account, dispositivi, eventi, Wi-Fi, container e Home Assistant finti), e cattura solo le
+`screenshots/mock` (account, dispositivi, eventi, Wi-Fi, container, badge delle app e Home Assistant finti), e cattura solo le
 finestre di SketchyBar, quindi niente scrivania né finestre sotto i popup. Per qualche secondo la
 barra mostra quei dati e apre i popup uno alla volta, poi `sketchybar --reload` la rimette com'era.
 
