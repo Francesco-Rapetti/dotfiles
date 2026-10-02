@@ -123,7 +123,7 @@ aerospace config --config-path
 ```
 
 Deve stampare `~/.config/aerospace/aerospace.toml`. In alto dovresti vedere la barra con il logo
-Apple, i workspace, l'app attiva, il logo di Home Assistant, l'uso di CPU, GPU e memoria, quello di Claude, l'uscita e l'ingresso audio, la rete (con la
+Apple, i workspace, l'app attiva, il logo di Home Assistant, l'uso di CPU, GPU e memoria, Docker (se è in esecuzione), l'uso di Claude, l'uscita e l'ingresso audio, la rete (con la
 VPN, se attiva), la batteria, il prossimo evento del calendario, l'orologio e, se ci sono aggiornamenti, il loro pallino
 all'estrema destra, e la finestra attiva con il bordo sfumato.
 
@@ -387,9 +387,32 @@ grigio fino alla successiva. Serve [Claude Code](https://code.claude.com/docs) (
 barra dei menu dell'app Claude, che `helpers/claude_icon.js` colora in `helpers/claude_icon.png`
 (non è nel repo); senza l'app al suo posto c'è ✻.
 
+![Docker](screenshots/docker.png)
+
+Alla sinistra di Claude, mentre Docker è in esecuzione, c'è la balena di Docker con quanti container
+sono attivi, come in `docker ps` (quindi anche quelli in pausa): grigio quando non ce n'è nessuno,
+rosso quando uno non supera l'health check o continua a riavviarsi. Quando Docker si ferma
+l'elemento sparisce. Un clic apre il motore (Docker Desktop, la versione di Docker Engine, CPU,
+memoria e immagini) e i container attivi in ordine di nome, così quelli di un progetto Compose
+stanno insieme. Per ciascuno c'è un'icona per lo stato (verde in esecuzione, gialla in pausa o
+mentre parte l'health check, rossa se l'health check fallisce o se si riavvia), la CPU e la memoria
+che usa, l'immagine, le porte pubblicate e da quanto è attivo (`nginx:1.27-alpine · :8080 · da 2 h`).
+Ne elenca dieci, gli altri li conta. CPU e memoria le misura `docker stats` quando apri il popup e
+poi ogni pochi secondi finché resta aperto; ci mette un paio di secondi, e intanto restano quelle
+dell'ultima volta. In fondo c'è *Apri Docker Desktop*, che apre la Dashboard.
+La barra si aggiorna subito: `sketchybarrc` avvia `plugins/docker.sh watch`, che segue
+`docker events` e avvisa SketchyBar quando un container parte, si ferma, va in pausa o cambia stato
+dell'health check; mentre Docker è spento controlla ogni 5 secondi se è partito. Una raffica di
+eventi, come quella di `docker compose up`, aggiorna la barra una volta sola, un secondo dopo
+l'ultimo. Funziona anche con gli altri motori che usano il comando `docker` (colima, OrbStack…), che
+cerca anche fuori dal `PATH`, dove lo mettono Docker Desktop, Homebrew e OrbStack. La balena è
+quella di Docker Desktop, che `helpers/docker_icons.js` colora nel blu di Docker in
+`helpers/docker_icons` insieme alle icone degli stati (simboli SF); è un marchio di Docker, quindi
+non è nel repo, e senza Docker Desktop al suo posto c'è una scatola.
+
 ![CPU, GPU e memoria](screenshots/system.png)
 
-Alla sinistra di Claude c'è quanto stanno lavorando la CPU, la GPU e la memoria, ognuna con la sua
+Alla sinistra di Docker, o di Claude quando Docker è spento, c'è quanto stanno lavorando la CPU, la GPU e la memoria, ognuna con la sua
 icona (un chip, un cubo, un banco di RAM) e la percentuale, aggiornate ogni 2 secondi; sul MacBook
 c'è solo la memoria. CPU e GPU diventano gialle dal 75% e rosse dal 90%. La memoria è la *Memoria utilizzata* di Monitoraggio
 Attività (memoria delle app, wired e compressa) sul totale, e ha il colore della *Pressione
@@ -506,7 +529,7 @@ Infine `git commit` e `git push` come in qualsiasi repo.
 
 Le immagini del README sono in `screenshots/` e le fa `screenshots/take.sh` con dati inventati:
 fa girare i plugin come li fa girare SketchyBar, sulla barra vera, ma con gli helper e i comandi di
-`screenshots/mock` (account, dispositivi, eventi, Wi-Fi e Home Assistant finti), e cattura solo le
+`screenshots/mock` (account, dispositivi, eventi, Wi-Fi, container e Home Assistant finti), e cattura solo le
 finestre di SketchyBar, quindi niente scrivania né finestre sotto i popup. Per qualche secondo la
 barra mostra quei dati e apre i popup uno alla volta, poi `sketchybar --reload` la rimette com'era.
 

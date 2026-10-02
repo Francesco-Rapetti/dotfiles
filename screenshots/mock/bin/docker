@@ -1,0 +1,50 @@
+#!/bin/sh
+
+# docker for docker.sh: Docker Desktop with six containers, a Compose project of four, mailpit and a
+# paused minio, and two stopped ones; up for 2 hours or 3 days from MOCK_NOW. It never calls the
+# real one
+
+# started <seconds before MOCK_NOW>: as docker inspect writes it
+started() {
+  /bin/date -u -r $((MOCK_NOW - $1)) +%Y-%m-%dT%H:%M:%S.123456789Z
+}
+
+# container <name> <image> <state> <health> <seconds up> <host port>...
+container() {
+  name=$1 image=$2 state=$3 health=$4 up=$5 ports=""
+  shift 5
+  for port in "$@"; do
+    ports="$ports${ports:+,}\"$port/tcp\":[{\"HostIp\":\"0.0.0.0\",\"HostPort\":\"$port\"},{\"HostIp\":\"::\",\"HostPort\":\"$port\"}]"
+  done
+  [ -n "$health" ] && health=",\"Health\":{\"Status\":\"$health\"}"
+  printf '{"Name":"/%s","Config":{"Image":"%s"},"State":{"Status":"%s","StartedAt":"%s"%s},"NetworkSettings":{"Ports":{%s}}}' \
+    "$name" "$image" "$state" "$(started "$up")" "$health" "$ports"
+}
+
+case "$1" in
+  version) echo 29.0.1 ;;
+  info) echo '{"OperatingSystem":"Docker Desktop","ServerVersion":"29.0.1","NCPU":8,"MemTotal":8217473024,"Images":14,"ContainersStopped":2}' ;;
+  ps)
+    case " $* " in
+      *" -q "*) printf '%s\n' 1a2b3c4d5e6f 2b3c4d5e6f7a 3c4d5e6f7a8b 4d5e6f7a8b9c 5e6f7a8b9c0d 6f7a8b9c0d1e ;;
+      *)
+        printf 'running\tUp 2 hours (healthy)\nrunning\tUp 2 hours\nrunning\tUp 2 hours (healthy)\n'
+        printf 'running\tUp 2 hours\nrunning\tUp 3 days\npaused\tUp 3 days (Paused)\n'
+        ;;
+    esac
+    ;;
+  inspect)
+    printf '[%s,%s,%s,%s,%s,%s]\n' \
+      "$(container shop-web-1 nginx:1.27-alpine running healthy 8040 8080)" \
+      "$(container shop-api-1 shop-api:dev running "" 8040 3000)" \
+      "$(container shop-db-1 postgres:16 running healthy 8100 5432)" \
+      "$(container shop-cache-1 redis:7-alpine running "" 8100 6379)" \
+      "$(container mailpit axllent/mailpit:latest running "" 263000 8025 1025)" \
+      "$(container minio minio/minio:latest paused "" 263000 9000 9001)"
+    ;;
+  stats)
+    printf 'shop-web-1\t0.42%%\t12.3MiB / 7.653GiB\nshop-api-1\t3.82%%\t186.4MiB / 7.653GiB\n'
+    printf 'shop-db-1\t0.91%%\t74.2MiB / 7.653GiB\nshop-cache-1\t0.27%%\t9.1MiB / 7.653GiB\n'
+    printf 'mailpit\t0.05%%\t21.6MiB / 7.653GiB\nminio\t0.00%%\t142MiB / 7.653GiB\n'
+    ;;
+esac
