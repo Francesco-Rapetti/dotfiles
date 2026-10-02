@@ -474,8 +474,9 @@ if [ -f "$CLAUDE_ICON" ]; then
 else
   claude_icon=(icon="✻" icon.color=0xffd97757)
 fi
-# Between the audio and the system brackets: 8 on both sides. The label is empty until claude.sh
-# has the numbers, but always drawn: its padding is the room after the icon
+# Between the audio bracket and the docker item, or the system bracket while Docker isn't
+# running: 8 on both sides. The label is empty until claude.sh has the numbers, but always drawn:
+# its padding is the room after the icon
 claude=(
   "${icon_pill[@]}"
   "${claude_icon[@]}"
@@ -492,6 +493,40 @@ sketchybar --add event claude_update \
            --add item claude right \
            --set claude "${claude[@]}" \
            --subscribe claude claude_update system_woke mouse.clicked mouse.exited.global
+
+# Docker: the whale with how many containers are running, in red when one is unhealthy or
+# restarting, only while Docker answers. A click opens the engine and the running containers, each
+# with its state, CPU, memory, image, ports and how long it has been up, and the row that opens
+# Docker Desktop. docker.sh watch follows docker events and triggers docker_change when a container
+# starts, stops, pauses or changes health, and when Docker starts or stops.
+# The whale is the one of Docker Desktop, which helpers/docker_icons.js colors in its blue since
+# SketchyBar can't color images, with the icons of the states in the colors of docker.sh; without
+# Docker Desktop, e.g. with colima, it is a box
+DOCKER_ICONS="$CONFIG_DIR/helpers/docker_icons"
+DOCKER_APP=/Applications/Docker.app
+if [ "$DOCKER_ICONS.js" -nt "$DOCKER_ICONS/circle.fill_green.png" ] \
+   || [ "$DOCKER_APP/Contents/Resources/Assets.car" -nt "$DOCKER_ICONS/whale.png" ]; then
+  osascript -l JavaScript "$DOCKER_ICONS.js" "$DOCKER_ICONS" "$DOCKER_APP" 2496ED \
+            text=${TEXT#0xff} green=${GREEN#0xff} yellow=${YELLOW#0xff} red=${RED#0xff}
+fi
+# Between the claude item and the system bracket: 8 to the bracket, and the 8 of claude on its right
+docker=(
+  "${icon_pill[@]}"
+  drawing=off
+  padding_left=8
+  padding_right=0
+  script="$PLUGIN_DIR/docker.sh"
+  "${popup[@]}"
+  popup.align=right
+  # No minimum: docker.sh gives each row of the popup its own height
+  popup.height=0
+)
+sketchybar --add event docker_change \
+           --add item docker right \
+           --set docker "${docker[@]}" \
+           --subscribe docker docker_change system_woke mouse.clicked mouse.exited.global
+pkill -f "$PLUGIN_DIR/docker.sh watch"
+"$PLUGIN_DIR/docker.sh" watch > /dev/null 2>&1 &
 
 # CPU, GPU and memory usage, read every 2 seconds. macOS has no command line tool for the GPU, and
 # the CPU needs two readings to count the time it worked between them: a Swift helper (rebuilt

@@ -16,10 +16,10 @@ REPO="$(dirname "$DIR")"
 MOCK="$DIR/mock"
 CAPTURE="$DIR/capture"
 
-SHOTS=(bar notch apple workspaces home system claude audio network battery calendar clock brew)
+SHOTS=(bar notch apple workspaces home system docker claude audio network battery calendar clock brew)
 # The items of the two sides of the bar, for the shot of the whole bar
 LEFT=(apple spaces front_app)
-RIGHT=(home_printer home system claude audio connection battery calendar clock brew)
+RIGHT=(home_printer home system docker claude audio connection battery calendar clock brew)
 
 # The time of the screenshots: today at 14:10, for the clock, the events and the resets of Claude.
 # Today, since the calendar of the clock is drawn for the real one
@@ -174,6 +174,7 @@ mock_bar() {
   run front_app front_app front_app_switched INFO=Safari
   run home home forced
   run system ram system_stats_change "${SYSTEM[@]}"
+  run docker docker forced
   run claude claude claude_update
   run audio audio_output forced
   run network network wifi_networks_change "${WIFI[@]}"
@@ -202,6 +203,17 @@ shot_apple() {
 shot_workspaces() { snap workspaces "" spaces front_app; }
 shot_home() { snap home home home_printer home; }
 shot_system() { snap system system system; }
+# The click opens the popup and measures the CPU and the memory of the containers in the background,
+# then shows them
+shot_docker() {
+  local i
+  run docker docker mouse.clicked
+  for ((i = 0; i < 50; i++)); do
+    [ -n "$(query docker.row.c.0 | jq -r .label.value)" ] && break
+    sleep 0.2
+  done
+  snap docker docker docker
+}
 shot_claude() { snap claude claude claude; }
 shot_audio() { snap audio audio_output audio; }
 shot_network() {
