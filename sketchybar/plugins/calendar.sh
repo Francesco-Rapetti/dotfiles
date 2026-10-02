@@ -125,7 +125,7 @@ render() {
   done
   space bottom 4
 
-  if [ "$(sketchybar --query calendar | jq -r '.popup.items // [] | join(" ")')" = "${names[*]}" ]; then
+  if [ "$(sketchybar --query calendar | jq -r '.popup.items // [] | . - ["keep.calendar"] | join(" ")')" = "${names[*]}" ]; then
     sketchybar "${sets[@]}" "$@"
   else
     sketchybar --remove '/calendar\.row\..*/' "${adds[@]}" "${sets[@]}" "$@"
@@ -189,7 +189,7 @@ case "$SENDER" in
     ;;
   # Without access to the calendars there are no events: the click opens Calendar
   mouse.clicked)
-    if [ "$(sketchybar --query calendar | jq '.popup.items | length')" -gt 0 ]; then
+    if [ "$(sketchybar --query calendar | jq '.popup.items // [] | . - ["keep.calendar"] | length')" -gt 0 ]; then
       sketchybar --set calendar popup.drawing=toggle
     else
       open -a Calendar

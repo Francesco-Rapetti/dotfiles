@@ -451,7 +451,7 @@ bluetooth_section() {
 # reserve for each one that isn't connected
 render_popup() {
   local devices outputs inputs bluetooth device_names=() actions=() battery=() name connected value widths
-  read -r OPEN ITEMS <<< "$(sketchybar --query audio_output | jq -r '"\(.popup.drawing) \(.popup.items // [] | join(" "))"')"
+  read -r OPEN ITEMS <<< "$(sketchybar --query audio_output | jq -r '"\(.popup.drawing) \(.popup.items // [] | . - ["keep.audio_output"] | join(" "))"')"
   devices="$("$HELPER" list)"
   outputs="$(grep $'^output\t' <<< "$devices" | cut -f2-)"
   inputs="$(grep $'^input\t' <<< "$devices" | cut -f2-)"

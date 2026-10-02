@@ -301,7 +301,7 @@ render_popup() {
   button_row settings "$SETTINGS" $PRIMARY settings other
   space bottom 4
 
-  if [ "$(sketchybar --query battery | jq -r '.popup.items // [] | join(" ")')" = "${names[*]}" ]; then
+  if [ "$(sketchybar --query battery | jq -r '.popup.items // [] | . - ["keep.battery"] | join(" ")')" = "${names[*]}" ]; then
     sketchybar "${sets[@]}"
   else
     sketchybar --remove '/battery\.row\..*/' "${adds[@]}" "${sets[@]}"

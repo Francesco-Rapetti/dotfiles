@@ -323,7 +323,7 @@ render() {
   fi
   space bottom 4
 
-  if [ "$(query docker | jq -r '.popup.items // [] | join(" ")')" = "${names[*]}" ]; then
+  if [ "$(query docker | jq -r '.popup.items // [] | . - ["keep.docker"] | join(" ")')" = "${names[*]}" ]; then
     sketchybar "${sets[@]}" "$@"
   else
     sketchybar --remove '/docker\.row\..*/' "${adds[@]}" "${sets[@]}" "$@"

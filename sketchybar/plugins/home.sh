@@ -476,7 +476,7 @@ render_popup() {
     WIDTH=$((PADDING + ICON_WIDTH + GAP + ${widths[3]:-0} + PADDING))
   [ $((MIN_WIDTH - 2 * INSET)) -gt $WIDTH ] && WIDTH=$((MIN_WIDTH - 2 * INSET))
 
-  items="$(sketchybar --query home | jq -r '.popup.items // [] | join(" ")')"
+  items="$(sketchybar --query home | jq -r '.popup.items // [] | . - ["keep.home"] | join(" ")')"
   HOVER=()
   [ -z "$items" ] && HOVER=(background.color=$TRANSPARENT)
 

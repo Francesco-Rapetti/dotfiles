@@ -235,7 +235,7 @@ render_popup() {
   command_row log_out "$LOG_OUT" "${RIGHT[@]}"
   space bottom 4
 
-  if [ "$(sketchybar --query apple | jq -r '.popup.items // [] | join(" ")')" = "${names[*]}" ]; then
+  if [ "$(sketchybar --query apple | jq -r '.popup.items // [] | . - ["keep.apple"] | join(" ")')" = "${names[*]}" ]; then
     sketchybar "${sets[@]}" "$@"
   else
     sketchybar --remove '/apple\..*/' "${adds[@]}" "${sets[@]}" "$@"
