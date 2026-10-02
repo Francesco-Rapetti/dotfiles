@@ -175,6 +175,10 @@ mock_bar() {
   sketchybar --set '/.*/' updates=off
   settle '/plugins/[a-z_]*\.sh'
   run notch notch forced
+  # notification.sh first, in the background: it saves the apps with a badge, whose windows have
+  # the dot of aerospace.sh
+  run notification notification brew_update
+  settle "$CONFIG/plugins/notification.sh"
   run aerospace aerospace forced
   run aerospace aerospace_mode forced
   run front_app front_app front_app_switched INFO=Safari
@@ -187,7 +191,6 @@ mock_bar() {
   run battery battery forced
   run calendar calendar_time calendar_change "${CALENDAR[@]}"
   run clock clock_time routine
-  run notification notification brew_update
   settle "$CONFIG/plugins/"
 }
 

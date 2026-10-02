@@ -10,6 +10,8 @@
 # upgrades it, "Aggiorna tutto" upgrades them all.
 # AeroSpace keeps running the old version after an upgrade: until it restarts the popup also has
 # "Riavvia AeroSpace", counted in the red badge, and the notification of the upgrade opens the popup.
+# The apps with a badge are saved in BADGED for aerospace.sh, which draws a green dot on their
+# windows and runs again with notification_badges_change when they change.
 # macOS doesn't tell when a badge changes: sketchybarrc runs this with watch, which reads them, and
 # the crashes, every POLL seconds and triggers notification_change when they change. The
 # notification item runs this with no arguments, each popup row with crash, open <bundle id>,
@@ -24,6 +26,7 @@ BUSY="${TMPDIR:-/tmp}/sketchybar_brew_busy"
 LOG="$HOME/Library/Logs/sketchybar-brew.log"
 CRASHES="${TMPDIR:-/tmp}/sketchybar_crashes"  # from ../start.sh: the time of each crash not seen yet
 CRASH_LOG="$HOME/Library/Logs/sketchybar-crash.log"
+BADGED="${TMPDIR:-/tmp}/sketchybar_notification_badged"  # the bundle id of each app with a badge
 
 source "$CONFIG_DIR/colors.sh"
 
@@ -139,6 +142,15 @@ badge() {
   BADGE=(label="$1" label.width=$width label.padding_left=$(((width - DIGIT_WIDTH * ${#1}) / 2)))
 }
 
+# save_badged <bundle ids>: saves the apps with a badge for aerospace.sh, which draws a dot on their
+# windows, and has it run again when they changed. After the rows of the popup: aerospace.sh reads
+# the items of the bar, which SketchyBar doesn't answer while it adds them
+save_badged() {
+  [ "${1%$'\n'}" = "$(cat "$BADGED" 2>/dev/null)" ] && return
+  printf %s "$1" > "$BADGED"
+  sketchybar --trigger notification_badges_change
+}
+
 # Rebuilds the badges and the popup rows from the badges of the apps and what check found, or hides
 # them when both are empty. During an upgrade or a restart it keeps what busy shows
 draw() {
@@ -158,9 +170,11 @@ draw() {
     unread=$crashes
   fi
 
+  local badged=""
   while IFS=$'\t' read -r bundle app label; do
     [ -n "$bundle" ] || continue
     bundles+=("$bundle") apps+=("$app") labels+=("$label") scripts+=("$0 open $bundle")
+    badged+="$bundle"$'\n'
     # A badge without a number, e.g. the dot of Slack for unread channels, counts as one
     digits="${label//[^0-9]/}"
     unread=$((unread + ${digits:+10#}${digits:-1}))
@@ -180,6 +194,7 @@ draw() {
   if [ $unread -eq 0 ] && [ $updates -eq 0 ]; then
     sketchybar "${items[@]}" --set notification drawing=off popup.drawing=off \
                              --set notification_apps drawing=off --set notification_brew drawing=off
+    save_badged "$badged"
     return
   fi
 
@@ -296,6 +311,7 @@ draw() {
     } < "$BUSY"
   fi
   sketchybar "${items[@]}"
+  save_badged "$badged"
 }
 
 # One render at a time, since watch and check start theirs on their own: the later one reads the
@@ -439,11 +455,12 @@ restart_aerospace() {
   sketchybar --trigger brew_update
 }
 
-# watch: triggers notification_change whenever the badges of the apps or the crashes change. A
-# reload of SketchyBar starts a new one and stops the old one
+# watch: triggers notification_change whenever the badges of the apps or the crashes change, and
+# once at the start: the dots of aerospace.sh may be those of before the reload. A reload of
+# SketchyBar starts a new one and stops the old one
 watch() {
   trap 'pkill -P $$; exit 0' TERM INT HUP
-  local badges last
+  local badges last=start
   while :; do
     badges="$(app_badges; cat "$CRASHES" 2>/dev/null)"
     if [ "$badges" != "$last" ]; then
