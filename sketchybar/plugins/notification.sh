@@ -92,17 +92,30 @@ aerospace_restart_version() {
   [ -n "$running" ] && [ "$running" != "$command" ] && echo "$command"
 }
 
-# <bundle id>\t<name>\t<badge> for each app of notification_apps.conf with a badge on its icon in
-# the Dock, in the order of the file. lsappinfo takes the bundle id or the name, and knows only the
-# running apps, e.g.
-# "CFBundleIdentifier"="com.tinyspeck.slackmacgap"
-# "LSDisplayName"="Slack"
-# "StatusLabel"={ "label"="3" }
+# <bundle id>\t<name>\t<badge> for each app of notification_apps.conf, by bundle id or name, with
+# a badge on its icon in the Dock, in the order of the file. helpers/dock_badges reads the badges
+# from the Dock. Without the Accessibility permission lsappinfo, which knows only the running apps
+# and only the badges of NSDockTile: not those of the apps of iOS, e.g. WhatsApp
 app_badges() {
   [ -f "$APPS" ] || return
-  local app info bundle name label
-  local label_pattern='"StatusLabel"=[{] "label"="([^"]+)"' bundle_pattern='"CFBundleIdentifier"="([^"]+)"'
-  local name_pattern='"LSDisplayName"="([^"]+)"'
+  local apps dock app bundle name label
+  apps="$(sed -E 's/#.*//; s/^[[:space:]]+//; s/[[:space:]]+$//; /^$/d' "$APPS")"
+  [ -n "$apps" ] || return
+  if dock="$("$CONFIG_DIR/helpers/dock_badges" 2>/dev/null)"; then
+    while IFS= read -r app; do
+      while IFS=$'\t' read -r bundle name label; do
+        if [ "$app" = "$bundle" ] || [ "$app" = "$name" ]; then
+          printf '%s\t%s\t%s\n' "$bundle" "$name" "$label"
+        fi
+      done <<< "$dock"
+    done <<< "$apps"
+    return
+  fi
+
+  # e.g. "CFBundleIdentifier"="com.tinyspeck.slackmacgap", "LSDisplayName"="Slack" and
+  # "StatusLabel"={ "label"="3" }, each on its line
+  local info label_pattern='"StatusLabel"=[{] "label"="([^"]+)"'
+  local bundle_pattern='"CFBundleIdentifier"="([^"]+)"' name_pattern='"LSDisplayName"="([^"]+)"'
   while IFS= read -r app; do
     info="$(lsappinfo info -only CFBundleIdentifier -only LSDisplayName -only StatusLabel "$app" 2>/dev/null)"
     [[ $info =~ $label_pattern ]] || continue
@@ -112,7 +125,7 @@ app_badges() {
     name="$app"
     [[ $info =~ $name_pattern ]] && name="${BASH_REMATCH[1]}"
     printf '%s\t%s\t%s\n' "$bundle" "$name" "$label"
-  done < <(sed -E 's/#.*//; s/^[[:space:]]+//; s/[[:space:]]+$//; /^$/d' "$APPS")
+  done <<< "$apps"
 }
 
 # text_widths <text>... [$'\n' <text>...]...: for each group of texts, separated by a newline, the

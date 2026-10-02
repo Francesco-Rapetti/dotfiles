@@ -192,7 +192,13 @@ sketchybar --add item front_app left \
 # screen as the other components. notification.sh runs brew update hourly, on wake and on reload;
 # brew_update refreshes the list without it, e.g. once an upgrade is done. macOS doesn't tell when
 # a badge changes: notification.sh watch reads them every 2 seconds and triggers
-# notification_change when they change
+# notification_change when they change. The Dock says the badges it shows only through the
+# Accessibility API, so a Swift helper (rebuilt when its source changes) reads them; SketchyBar has
+# the permission of AeroSpace, which starts it
+DOCK_HELPER="$CONFIG_DIR/helpers/dock_badges"
+if [ ! -x "$DOCK_HELPER" ] || [ "$DOCK_HELPER.swift" -nt "$DOCK_HELPER" ]; then
+  swiftc -O "$DOCK_HELPER.swift" -o "$DOCK_HELPER"
+fi
 notification=(
   drawing=off
   label.drawing=off
