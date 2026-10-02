@@ -62,7 +62,7 @@ EOF
 # The rows are INSET from the edges, so the highlight doesn't touch them
 names=() adds=() sets=()
 row() {
-  local name="calendar.$1"
+  local name="calendar.row.$1"
   shift
   names+=("$name")
   adds+=(--add item "$name" popup.calendar)
@@ -88,7 +88,7 @@ render() {
   done <<< "$EVENTS"
 
   if [ ${#states[@]} -eq 0 ]; then
-    sketchybar --remove '/calendar\..*/' --set calendar popup.drawing=off "$@"
+    sketchybar --remove '/calendar\.row\..*/' --set calendar popup.drawing=off "$@"
     return
   fi
 
@@ -121,14 +121,14 @@ render() {
                    label.padding_left=0 label.padding_right=$PADDING \
                    background.drawing=on background.color=$TRANSPARENT background.corner_radius=6 \
                    background.height=$ROW_HEIGHT "${logo[@]}" script="$0 '${links[i]}'"
-    sets+=(--subscribe "calendar.event.$i" mouse.entered mouse.exited mouse.clicked)
+    sets+=(--subscribe "calendar.row.event.$i" mouse.entered mouse.exited mouse.clicked)
   done
   space bottom 4
 
   if [ "$(sketchybar --query calendar | jq -r '.popup.items // [] | join(" ")')" = "${names[*]}" ]; then
     sketchybar "${sets[@]}" "$@"
   else
-    sketchybar --remove '/calendar\..*/' "${adds[@]}" "${sets[@]}" "$@"
+    sketchybar --remove '/calendar\.row\..*/' "${adds[@]}" "${sets[@]}" "$@"
   fi
 }
 
@@ -148,7 +148,7 @@ time_color() {
 }
 
 # A popup row: as in a menu, the popup closes and then the link opens
-if [[ $NAME == calendar.* ]]; then
+if [[ $NAME == calendar.row.* ]]; then
   case "$SENDER" in
     mouse.entered) sketchybar --set "$NAME" background.color=$HIGHLIGHT ;;
     mouse.exited) sketchybar --set "$NAME" background.color=$TRANSPARENT ;;
@@ -168,16 +168,18 @@ case "$SENDER" in
     case "$KIND" in
       upcoming | ongoing)
         color=$(time_color)
-        items=(--set calendar_time drawing=on icon.color=$color label="$TIME" label.color=$color
+        items=(--set calendar.gap drawing=on
+               --set calendar_time drawing=on icon.color=$color label="$TIME" label.color=$color
                --set calendar_title drawing=on label="$LABEL" label.color=$TEXT padding_left=$TITLE_AFTER_TIME)
         ;;
       allday | denied)
         color=$TEXT
         [ "$KIND" = denied ] && color=$RED
-        items=(--set calendar_time drawing=on icon.color=$color label=""
+        items=(--set calendar.gap drawing=on --set calendar_time drawing=on icon.color=$color label=""
                --set calendar_title drawing=on label="$LABEL" label.color=$color padding_left=$TITLE_AFTER_ICON)
         ;;
-      *) items=(--set calendar_time drawing=off --set calendar_title drawing=off --set calendar popup.drawing=off) ;;
+      *) items=(--set calendar.gap drawing=off --set calendar_time drawing=off --set calendar_title drawing=off
+                --set calendar popup.drawing=off) ;;
     esac
     if [ -n "${EVENTS+set}" ]; then
       render --set calendar_time icon="$CALENDAR" "${items[@]}"

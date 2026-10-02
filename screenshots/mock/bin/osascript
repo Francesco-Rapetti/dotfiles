@@ -1,14 +1,14 @@
 #!/bin/bash
 
-# osascript, but the name of the Wi-Fi network.sh reads is made up, and the displays with a notch
-# that notch.sh asks for are none, or all of them with MOCK_NOTCH. The plugins also use it to
-# measure texts, so the other scripts run
+# osascript, but the name and the band of the Wi-Fi network.sh reads are made up, and the displays
+# with a notch that notch.sh asks for are none, or all of them with MOCK_NOTCH. The plugins also use
+# it to measure texts, so the other scripts run
 
 for argument in "$@"; do
   if [ "$argument" = - ]; then
     script="$(cat)"
     case "$script" in
-      *CachedScanRecord*) echo "Casa" ;;
+      *CachedScanRecord*) printf 'Casa\t5\n' ;;
       *safeAreaInsets*) [ -n "$MOCK_NOTCH" ] && sketchybar --query displays | jq -r 'map(.DirectDisplayID) | join(",")' ;;
       *) /usr/bin/osascript "$@" <<< "$script" ;;
     esac

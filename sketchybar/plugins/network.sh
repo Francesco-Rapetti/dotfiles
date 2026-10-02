@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 
-# Network: the network item shows the Wi-Fi name, Ethernet, or why there is no connection, and
-# network_vpn, before it in the same pill, the shield while a VPN is on, followed by its name in
-# network_vpn_name, which isn't on the display with the notch (see notch.sh).
-# A click on any of them opens the popup of network: the IP address of the Mac, the public one, the
+# Network: the network item shows the icon of the connection, followed by the Wi-Fi name, Ethernet,
+# or why there is none in network_name, and by the band of the Wi-Fi in network_band; network_vpn,
+# before them in the same pill, the shield while a VPN is on, followed by its name in
+# network_vpn_name. The names aren't on the display with the notch (see notch.sh). A click on any of
+# them opens the popup of the connection bracket: the IP address of the Mac, the public one, the
 # router and the VPN; then Ethernet and Wi-Fi, each with a row that turns it off or on, and the Wi-Fi
 # networks around the Mac, those saved on it first, where a click joins one; last Impostazioni Rete….
 # Since macOS 14.4 only an app that may use Location Services gets the names of the Wi-Fi networks
@@ -43,7 +44,6 @@ SECTION_GAP=10  # above Ethernet, Wi-Fi and Impostazioni Rete…
 KNOWN=10
 OTHERS=10
 WIRED=3
-VPN_LENGTH=20   # characters of the name of the VPN in the bar
 
 ADDRESS_TITLE="Indirizzo IP"
 PUBLIC_TITLE="IP pubblico"
@@ -66,17 +66,23 @@ CONNECTING="Connessione…"
 FAILED="Non riuscito"
 SETTINGS="Impostazioni Rete…"
 
-# macOS 14.4+ redacts the SSID in networksetup, ipconfig and system_profiler, and CoreWLAN gives it
-# only to an app that may use the location, but it is still in the last scan record cached in the
-# System Configuration store
-wifi_ssid() {
+# The name of the Wi-Fi network and its band, separated by a tab, e.g. Casa\t5. macOS 14.4+ redacts
+# the SSID in networksetup, ipconfig and system_profiler, and CoreWLAN gives it only to an app that
+# may use the location, but it is still in the last scan record cached in the System Configuration
+# store, with the channel. Its flags tell the band, as in the Apple80211 headers: 0x8 2.4 GHz, 0x10
+# 5 GHz, 0x2000 6 GHz; without them the number of the channel does, up to 14 in the 2.4 GHz band
+wifi_network() {
   osascript -l JavaScript - "$1" 2>/dev/null <<'EOF'
 ObjC.import('SystemConfiguration')
 function run(argv) {
   try {
     const store = $.SCDynamicStoreCreate(null, $('sketchybar'), null, null)
     const state = ObjC.castRefToObject($.SCDynamicStoreCopyValue(store, $(`State:/Network/Interface/${argv[0]}/AirPort`)))
-    return $.NSKeyedUnarchiver.unarchiveObjectWithData(state.objectForKey('CachedScanRecord')).objectForKey('SSID_STR').js
+    const record = $.NSKeyedUnarchiver.unarchiveObjectWithData(state.objectForKey('CachedScanRecord'))
+    const number = key => Number(ObjC.unwrap(record.objectForKey(key))) || 0
+    const flags = number('CHANNEL_FLAGS'), channel = number('CHANNEL')
+    const band = flags & 0x2000 ? '6' : flags & 0x10 ? '5' : flags & 0x8 ? '2.4' : channel > 14 ? '5' : channel > 0 ? '2.4' : ''
+    return `${record.objectForKey('SSID_STR').js}\t${band}`
   } catch (e) {
     return ''
   }
@@ -114,7 +120,7 @@ wired_services() {
   done < <(networksetup -listnetworkserviceorder)
 }
 
-# The state of the network: PRIMARY_INTERFACE, the one macOS is using, SSID and WIFI_POWER, and the
+# The state of the network: PRIMARY_INTERFACE, the one macOS is using, SSID, BAND and WIFI_POWER, and the
 # VPN that is on: VPN_NAME and VPN_INTERFACE, if macOS knows it
 read_network() {
   PORTS="$(networksetup -listallhardwareports)"
@@ -134,10 +140,10 @@ read_network() {
     fi
   done
 
-  WIFI_POWER=off SSID=""
+  WIFI_POWER=off SSID="" BAND=""
   if [ -n "$WIFI_DEVICE" ]; then
     networksetup -getairportpower "$WIFI_DEVICE" | grep -q 'On$' && WIFI_POWER=on
-    grep -qx "$WIFI_DEVICE" <<< "$CONNECTED" && SSID="$(wifi_ssid "$WIFI_DEVICE")"
+    grep -qx "$WIFI_DEVICE" <<< "$CONNECTED" && IFS=$'\t' read -r SSID BAND <<< "$(wifi_network "$WIFI_DEVICE")"
   fi
 
   # The VPNs of System Settings and of the VPN apps are in scutil --nc, e.g.
@@ -153,8 +159,11 @@ read_network() {
 }
 
 update_bar() {
+  local band=(drawing=off)
   if [ -n "$PRIMARY_INTERFACE" ] && [ "$PRIMARY_INTERFACE" = "$WIFI_DEVICE" ]; then
     ICON=$WIFI COLOR=$TEXT LABEL="${SSID:-Wi-Fi}"
+    # e.g. 2,4 GHz, with the decimal comma of the other texts
+    [ -n "$BAND" ] && band=(drawing=on label="${BAND/./,} GHz")
   elif [ -n "$PRIMARY_INTERFACE" ]; then
     ICON=$ETHERNET COLOR=$TEXT LABEL="Ethernet"
   elif [ -z "$WIFI_DEVICE" ]; then
@@ -166,12 +175,9 @@ update_bar() {
   fi
 
   local vpn=(drawing=off) vpn_name=(drawing=off)
-  if [ -n "$VPN_NAME" ]; then
-    local name="$VPN_NAME"
-    [ ${#name} -gt $VPN_LENGTH ] && name="${name:0:$((VPN_LENGTH - 1))}…"
-    vpn=(drawing=on) vpn_name=(drawing=on label="$name")
-  fi
-  sketchybar --set network icon="$ICON" icon.color="$COLOR" label="$LABEL" \
+  [ -n "$VPN_NAME" ] && vpn=(drawing=on) vpn_name=(drawing=on label="$VPN_NAME")
+  sketchybar --set network icon="$ICON" icon.color="$COLOR" --set network_name label="$LABEL" \
+             --set network_band "${band[@]}" \
              --set network_vpn "${vpn[@]}" --set network_vpn_name "${vpn_name[@]}"
 }
 
@@ -216,7 +222,7 @@ row() {
   local name="network.row.$1"
   shift
   names+=("$name")
-  adds+=(--add item "$name" popup.network)
+  adds+=(--add item "$name" popup.connection)
   sets+=(--set "$name" padding_left=$INSET padding_right=$INSET "$@")
 }
 
@@ -316,7 +322,7 @@ render_popup() {
   local permission networks known other
   names=() adds=() sets=() subscribes=()
   local items
-  items="$(sketchybar --query network | jq -r '.popup.items // [] | join(" ")')"
+  items="$(sketchybar --query connection | jq -r '.popup.items // [] | join(" ")')"
   { IFS= read -r permission; networks="$(cat)"; } 2>/dev/null < "$NETWORKS_FILE"
   [ "$WIFI_POWER" = on ] || networks=""
   # The network the Mac is on first, as in the macOS menu
@@ -485,11 +491,11 @@ case "$1" in
             "$HELPER" join "$2"
             ;;
           location)
-            sketchybar --set network popup.drawing=off
+            sketchybar --set connection popup.drawing=off
             open "x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices"
             ;;
           settings)
-            sketchybar --set network popup.drawing=off
+            sketchybar --set connection popup.drawing=off
             open "x-apple.systempreferences:com.apple.Network-Settings.extension"
             ;;
         esac
@@ -503,17 +509,17 @@ esac
 # networks again and reads the public address
 case "$SENDER" in
   mouse.clicked)
-    if [ "$(sketchybar --query network | jq -r .popup.drawing)" = on ]; then
-      sketchybar --set network popup.drawing=off
+    if [ "$(sketchybar --query connection | jq -r .popup.drawing)" = on ]; then
+      sketchybar --set connection popup.drawing=off
     else
-      sketchybar --set network popup.drawing=on
+      sketchybar --set connection popup.drawing=on
       "$HELPER" scan 2>/dev/null
       read_network
       render_popup
       public_address &
     fi
     ;;
-  mouse.exited.global) sketchybar --set network popup.drawing=off ;;
+  mouse.exited.global) sketchybar --set connection popup.drawing=off ;;
   # From helpers/wifi_networks.app: the networks, and how the one the popup asked for went. A network
   # of a company or a university is joined in System Settings, which asks for the user name too
   wifi_networks_change)
@@ -523,13 +529,13 @@ case "$SENDER" in
       case "$RESULT" in
         failed | missing | denied) FAILED_NETWORK="$JOINED" ;;
         enterprise)
-          sketchybar --set network popup.drawing=off
+          sketchybar --set connection popup.drawing=off
           open "x-apple.systempreferences:com.apple.wifi-settings-extension"
           ;;
       esac
     fi
     update
     ;;
-  # wifi_change, system_woke, the update_freq and the first run. The VPN items only open the popup
+  # wifi_change, system_woke, the update_freq and the first run. The other items only open the popup
   *) [ "$NAME" = network ] && update ;;
 esac

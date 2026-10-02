@@ -156,8 +156,10 @@ sketchybar --add item front_app left \
 # A click lists them, a click on one upgrades it; until AeroSpace restarts on a new version the
 # list also has a row that restarts it. brew update runs hourly, on wake and on reload;
 # brew_update refreshes the list without it, e.g. once an upgrade is done
+# padding_left=8: the clock bracket is on its left
 brew=(
   drawing=off
+  padding_left=8
   update_freq=3600
   script="$PLUGIN_DIR/brew.sh"
   label.font="Helvetica Neue:Bold:11.0"
@@ -182,16 +184,24 @@ sketchybar --add event brew_update \
            --set brew "${brew[@]}" \
            --subscribe brew brew_update system_woke mouse.clicked mouse.exited.global
 
-# A click opens the calendar of the month, an image that clock.sh has the helper calendar_month
-# draw each time; a click on it opens the Calendar app
+# The date and the hour, two items in a pill: clock_date isn't on the display with the notch (see
+# notch.sh below), so the popup is the bracket's, which is on every display and keeps it at the edge
+# of the pill. A click on either opens the calendar of the month, an image that clock.sh has the
+# helper calendar_month draw each time; a click on it opens the Calendar app
 MONTH_HELPER="$CONFIG_DIR/helpers/calendar_month"
 if [ ! -x "$MONTH_HELPER" ] || [ "$MONTH_HELPER.swift" -nt "$MONTH_HELPER" ]; then
   swiftc -O "$MONTH_HELPER.swift" -o "$MONTH_HELPER"
 fi
-clock=(
-  "${text_pill[@]}"
-  update_freq=10
+# The hour starts at the edge of the pill when it is alone, so it is the date that leaves two
+# spaces before it (7), with a negative padding_right: it cancels most of the padding of the hour
+# (padding_left + label.padding_left)
+clock_date=(
+  label.padding_right=0
+  padding_right=-3
   script="$PLUGIN_DIR/clock.sh"
+)
+clock=(
+  "${pill[@]}"
   "${popup[@]}"
   popup.align=right
 )
@@ -200,9 +210,14 @@ month=(
   background.drawing=on
   click_script="open -a Calendar; sketchybar --set clock popup.drawing=off"
 )
-sketchybar --add item clock right \
+sketchybar --add item clock_time right \
+           --set clock_time update_freq=10 script="$PLUGIN_DIR/clock.sh" \
+           --subscribe clock_time mouse.clicked mouse.exited.global \
+           --add item clock_date right \
+           --set clock_date "${clock_date[@]}" \
+           --subscribe clock_date mouse.clicked \
+           --add bracket clock clock_date clock_time \
            --set clock "${clock[@]}" \
-           --subscribe clock mouse.clicked mouse.exited.global \
            --add item clock.month popup.clock \
            --set clock.month "${month[@]}"
 
@@ -213,9 +228,10 @@ sketchybar --add item clock right \
 # Two items in a pill: calendar_time, the icon and the time of the event, in a color that tells how
 # close it is, and calendar_title, the rest, which isn't on the display with the notch (see notch.sh
 # below). So the popup is the bracket's, which is on every display and keeps it at the edge of the
-# pill. A click on either lists the events of the day, and a click on one joins its Google Meet call
-# or shows it in Calendar. The Meet logo is MeetingBar's, which helpers/meet_icon.js draws into
-# helpers/meet_icon.png (a camera without the app)
+# pill. Two brackets side by side would touch: calendar.gap, which calendar.sh shows with the
+# event, keeps the clock one 8 away. A click on either lists the events of the day, and a click on
+# one joins its Google Meet call or shows it in Calendar. The Meet logo is MeetingBar's, which
+# helpers/meet_icon.js draws into helpers/meet_icon.png (a camera without the app)
 CALENDAR_SOURCE="$CONFIG_DIR/helpers/calendar_events"
 CALENDAR_APP="$CALENDAR_SOURCE.app"
 CALENDAR_HELPER="$CALENDAR_APP/Contents/MacOS/calendar_events"
@@ -245,6 +261,8 @@ calendar=(
   popup.height=0
 )
 sketchybar --add event calendar_change \
+           --add item calendar.gap right \
+           --set calendar.gap drawing=off label.drawing=off padding_left=0 padding_right=8 \
            --add item calendar_title right \
            --set calendar_title "${calendar_title[@]}" \
            --subscribe calendar_title mouse.clicked \
@@ -274,10 +292,11 @@ if [ "$CONFIG_DIR/helpers/battery_icons.js" -nt "$BATTERY_ICONS/plug_text.png" ]
   osascript -l JavaScript "$CONFIG_DIR/helpers/battery_icons.js" "$BATTERY_ICONS" \
             text=CDD6F4 green=A6E3A1 yellow=F9E2AF
 fi
-# padding_left=8: the connection bracket is on its left
+# 8 on both sides: the connection bracket is on its left, the calendar one on its right
 battery=(
   "${icon_pill[@]}"
   padding_left=8
+  padding_right=8
   script="$PLUGIN_DIR/battery.sh"
   "${popup[@]}"
   popup.align=right
@@ -292,10 +311,12 @@ sketchybar --add event battery_change \
 pkill -x battery_charge
 "$BATTERY_HELPER" watch > /dev/null 2>&1 &
 
-# The connection: the Wi-Fi name, Ethernet, or why there is none, and before it, in the same pill,
-# the shield and the name of the VPN while one is on, as macOS puts the VPN before the Wi-Fi. The
-# name is an item of its own, which isn't on the display with the notch (see notch.sh below).
-# A click on any of them opens the IP address of the Mac, the public one, the router and the VPN, then
+# The connection: the Wi-Fi name with its band (2,4, 5 or 6 GHz) after it, Ethernet, or why there
+# is none, and before it, in the same pill, the shield and the name of the VPN while one is on, as
+# macOS puts the VPN before the Wi-Fi. The names are items of their own, network_name and
+# network_vpn_name, which aren't on the display with the notch (see notch.sh below): there the icons
+# stay, with the band. The popup is the bracket's, which keeps it at the edge of the pill whichever
+# item ends it. A click on any of them opens the IP address of the Mac, the public one, the router and the VPN, then
 # the rows that turn Ethernet and the Wi-Fi off or on and the Wi-Fi networks around the Mac, where
 # a click joins one.
 # macOS gives the names of the networks only to an app that may use Location Services, which also
@@ -320,13 +341,33 @@ NETWORK_ICONS="$CONFIG_DIR/helpers/network_icons"
 if [ "$NETWORK_ICONS.js" -nt "$NETWORK_ICONS/wifi_3.png" ]; then
   osascript -l JavaScript "$NETWORK_ICONS.js" "$NETWORK_ICONS" ${TEXT#0xff}
 fi
+# Without its name, the icon ends as far from what follows as the pill starts before it, and the
+# name moves back next to it, as for the audio devices
 network=(
   "${with_icon[@]}"
+  label.drawing=off
+  padding_right=12
   update_freq=30
   script="$PLUGIN_DIR/network.sh"
+)
+network_name=(
+  padding_left=-10
+  label.padding_left=0
+  script="$PLUGIN_DIR/network.sh"
+)
+# The band follows the name, or the icon, like a detail, as the battery of the audio devices:
+# smaller and dimmer, and the negative padding cancels most of the space before it
+network_band=(
+  drawing=off
+  padding_left=-10
+  label.font="Helvetica Neue:Bold:11.0"
+  label.color=$SUBTEXT
+  script="$PLUGIN_DIR/network.sh"
+)
+connection=(
+  "${pill[@]}"
   "${popup[@]}"
-  # On the right like the other items on the right of the bar, so that it doesn't leave the screen:
-  # network is the last item of the pill
+  # On the right like the other items on the right of the bar, so that it doesn't leave the screen
   popup.align=right
   # No minimum: network.sh gives each row of the popup its own height
   popup.height=0
@@ -352,6 +393,12 @@ vpn_name=(
 # Two brackets side by side would touch: connection.gap keeps the audio one 8 away, as the other
 # components
 sketchybar --add event wifi_networks_change \
+           --add item network_band right \
+           --set network_band "${network_band[@]}" \
+           --subscribe network_band mouse.clicked \
+           --add item network_name right \
+           --set network_name "${network_name[@]}" \
+           --subscribe network_name mouse.clicked \
            --add item network right \
            --set network "${network[@]}" \
            --subscribe network wifi_change wifi_networks_change system_woke \
@@ -362,8 +409,8 @@ sketchybar --add event wifi_networks_change \
            --add item network_vpn right \
            --set network_vpn "${vpn[@]}" \
            --subscribe network_vpn mouse.clicked \
-           --add bracket connection network_vpn network_vpn_name network \
-           --set connection "${pill[@]}" \
+           --add bracket connection network_vpn network_vpn_name network network_name network_band \
+           --set connection "${connection[@]}" \
            --add item connection.gap right \
            --set connection.gap label.drawing=off padding_left=0 padding_right=8
 pkill -x wifi_networks
@@ -413,8 +460,24 @@ pkill -x audio_devices
 # audio.sh updates all four items, since the input hides when it is the same device as the
 # output, or the Mac's microphone with its speakers; update_freq keeps the battery of Bluetooth
 # devices up to date.
-# The battery follows the name like a detail of the device: smaller and dimmer, and the negative
-# padding cancels most of the space after the name (label.padding_right + padding_right).
+# The names are items of their own, audio_output_name and audio_input_name, which aren't on the
+# display with the notch (see notch.sh below): there the icons stay, with the battery. Without a
+# label after it, an icon ends as far from what follows as the pill starts before it (padding_left +
+# icon.padding_left + 2 of the glyph); the name moves back next to it, 2 after it as the label of an
+# icon, with a negative padding_left
+audio_device=(
+  "${with_icon[@]}"
+  label.drawing=off
+  padding_right=12
+)
+audio_name=(
+  drawing=off
+  padding_left=-10
+  label.padding_left=0
+  script="$PLUGIN_DIR/audio.sh"
+)
+# The battery follows the name, or the icon, like a detail of the device: smaller and dimmer, and
+# the negative padding cancels most of the space before it (label.padding_right + padding_right).
 # audio.sh sets the icon color, red when the battery is low
 audio_battery=(
   "${with_icon[@]}"
@@ -429,7 +492,7 @@ audio_battery=(
 # click makes one the default; then the paired Bluetooth audio devices, which a click connects or
 # disconnects
 audio_output=(
-  "${with_icon[@]}"
+  "${audio_device[@]}"
   update_freq=120
   script="$PLUGIN_DIR/audio.sh"
   "${popup[@]}"
@@ -440,17 +503,24 @@ audio_output=(
 sketchybar --add item audio_input_battery right \
            --set audio_input_battery "${audio_battery[@]}" script="$PLUGIN_DIR/audio.sh" \
            --subscribe audio_input_battery mouse.clicked \
+           --add item audio_input_name right \
+           --set audio_input_name "${audio_name[@]}" \
+           --subscribe audio_input_name mouse.clicked \
            --add item audio_input right \
-           --set audio_input "${with_icon[@]}" script="$PLUGIN_DIR/audio.sh" \
+           --set audio_input "${audio_device[@]}" script="$PLUGIN_DIR/audio.sh" \
            --subscribe audio_input mouse.clicked \
            --add item audio_output_battery right \
            --set audio_output_battery "${audio_battery[@]}" script="$PLUGIN_DIR/audio.sh" \
            --subscribe audio_output_battery mouse.clicked \
+           --add item audio_output_name right \
+           --set audio_output_name "${audio_name[@]}" \
+           --subscribe audio_output_name mouse.clicked \
            --add item audio_output right \
            --set audio_output "${audio_output[@]}" \
            --subscribe audio_output audio_device_change audio_volume_change system_woke \
                                     mouse.clicked mouse.exited.global \
-           --add bracket audio audio_output audio_output_battery audio_input audio_input_battery \
+           --add bracket audio audio_output audio_output_name audio_output_battery \
+                               audio_input audio_input_name audio_input_battery \
            --set audio "${pill[@]}"
 
 # Claude plan usage: how much of the 5-hour session and of the weekly limit is used, in yellow
@@ -628,10 +698,12 @@ pkill -x home_assistant
 
 ##### Notch #####
 # On a MacBook's display the notch covers the middle of the bar, and the items on the right would
-# end up under it: notch.sh shows CPU, GPU and the title of the event only on the displays without
-# one. There the memory stays alone, the VPN with only its shield and the event with only its time. SketchyBar numbers the
-# displays by their arrangement, which changes as displays come and go: display_change fires then,
-# and whenever another display becomes the active one
+# end up under it: notch.sh shows CPU, GPU, the names of the audio devices, of the Wi-Fi, of the VPN
+# and of the event and the date only on the displays without one. There the memory stays alone, the
+# audio devices, the connection and the VPN with only their icons, the event with only its time and
+# the clock with only the hour. SketchyBar numbers the displays by their arrangement, which changes
+# as displays come and go: display_change fires then, and whenever another display becomes the
+# active one
 sketchybar --add item notch left \
            --set notch drawing=off script="$PLUGIN_DIR/notch.sh" \
            --subscribe notch display_change

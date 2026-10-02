@@ -180,7 +180,7 @@ mock_bar() {
   run network network wifi_networks_change "${WIFI[@]}"
   run battery battery forced
   run calendar calendar_time calendar_change "${CALENDAR[@]}"
-  run clock clock routine
+  run clock clock_time routine
   run brew brew brew_update
   settle "$CONFIG/plugins/"
 }
@@ -219,7 +219,7 @@ shot_audio() { snap audio audio_output audio; }
 shot_network() {
   run network network mouse.clicked
   settle "$CONFIG/plugins/network.sh"
-  snap network network connection
+  snap network connection connection
 }
 shot_battery() {
   run battery battery mouse.clicked
@@ -227,7 +227,7 @@ shot_battery() {
 }
 shot_calendar() { snap calendar calendar calendar; }
 shot_clock() {
-  run clock clock mouse.clicked
+  run clock clock_time mouse.clicked
   snap clock clock clock
 }
 shot_brew() { snap brew brew brew; }

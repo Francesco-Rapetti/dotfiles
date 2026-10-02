@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 
-# Default audio output and input: updates audio_output and audio_input, each followed by the
-# battery of the device (audio_output_battery, audio_input_battery) when it has one, or only the
+# Default audio output and input: updates the icons, audio_output and audio_input, each followed by
+# the name of the device (audio_output_name, audio_input_name, not on the display with the notch, see
+# notch.sh) and its battery (audio_output_battery, audio_input_battery) when it has one, or only the
 # output when they are the same device or the Mac's own speakers and microphone.
 # helpers/audio_devices reports their id, transport, type, name and battery (Bluetooth only);
 # the icons are SF Symbols, except for those SF Symbols doesn't have, images that sketchybarrc
 # makes: the Galaxy Buds out of a photo (helpers/galaxy_buds_icon.js), and the Mac, a display or
 # audio glasses with a speaker badge, a microphone badge or both (helpers/audio_icons.js)
-# A click on any of the four items opens the popup of audio_output: for the output and then the
+# A click on any of the six items opens the popup of audio_output: for the output and then the
 # input, the volume of the default device with a slider, or a note when macOS can't change it
 # (e.g. the Arctis Nova Pro Wireless, whose volume is on its base station), and the devices with
 # the battery of the Bluetooth ones, where a click makes one the default; then the paired Bluetooth
@@ -50,7 +51,6 @@ GAP=8              # between the icon and the name of a device
 COLUMN_GAP=16      # between the name of a device and the text on its right
 ICON_WIDTH=31      # the column of the device icons, as wide as the widest, the glasses
 ROW_HEIGHT=26      # of a device
-NAME_LENGTH=14     # characters of the names in the bar, with the … (the popup has them whole)
 SLIDER_HEIGHT=8
 OUTPUT_TITLE="Uscita"
 INPUT_TITLE="Ingresso"
@@ -180,23 +180,6 @@ common_name() {
   echo "${a[*]:0:i}"
 }
 
-# short_name <name>: the name, or if it is longer than NAME_LENGTH the words that fit with …, e.g.
-# AirPods Pro… for AirPods Pro di Luca, or the start of a first word too long
-short_name() {
-  if [ ${#1} -le $NAME_LENGTH ]; then
-    echo "$1"
-    return
-  fi
-  local words word short="" longer
-  read -ra words <<< "$1"
-  for word in "${words[@]}"; do
-    longer="${short:+$short }$word"
-    [ ${#longer} -lt $NAME_LENGTH ] || break
-    short=$longer
-  done
-  echo "${short:-${1:0:NAME_LENGTH-1}}…"
-}
-
 # The bar items: the default output and input, and their battery
 update_bar() {
   IFS=$'\t' read -r OUT_ID OUT_TRANSPORT OUT_TYPE OUT_NAME OUT_BATTERY < <("$HELPER" output)
@@ -216,16 +199,16 @@ update_bar() {
     [ -n "$MAC" ] && OUT_NAME=$MAC IN_ID="" OUT_BADGES=speaker_microphone
   fi
 
-  output=(drawing=off)
+  output=(drawing=off) output_name=(drawing=off)
   if [ -n "$OUT_ID" ]; then
     icon_settings "$(icon output $OUT_BADGES "$OUT_TRANSPORT" "$OUT_TYPE" "$OUT_NAME")"
-    output=(drawing=on "${ICON[@]}" label="$(short_name "$OUT_NAME")")
+    output=(drawing=on "${ICON[@]}") output_name=(drawing=on label="$OUT_NAME")
   fi
 
-  input=(drawing=off)
+  input=(drawing=off) input_name=(drawing=off)
   if [ -n "$IN_ID" ]; then
     icon_settings "$(icon input microphone "$IN_TRANSPORT" "$IN_TYPE" "$IN_NAME")"
-    input=(drawing=on "${ICON[@]}" label="$(short_name "$IN_NAME")")
+    input=(drawing=on "${ICON[@]}") input_name=(drawing=on label="$IN_NAME")
   fi
 
   [ -n "$OUT_ID" ] || OUT_BATTERY=""
@@ -233,8 +216,10 @@ update_bar() {
   read -ra output_battery <<< "$(battery_for "$OUT_BATTERY")"
   read -ra input_battery <<< "$(battery_for "$IN_BATTERY")"
 
-  sketchybar --set audio_output "${output[@]}" --set audio_output_battery "${output_battery[@]}" \
-             --set audio_input "${input[@]}" --set audio_input_battery "${input_battery[@]}"
+  sketchybar --set audio_output "${output[@]}" --set audio_output_name "${output_name[@]}" \
+             --set audio_output_battery "${output_battery[@]}" \
+             --set audio_input "${input[@]}" --set audio_input_name "${input_name[@]}" \
+             --set audio_input_battery "${input_battery[@]}"
 }
 
 # Width in points of the widest text of each group, e.g. text_widths HelveticaNeue-Bold 13 <text>...

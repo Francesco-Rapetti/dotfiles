@@ -7,9 +7,10 @@
 # change only when the displays do, or at startup. NSScreen tells which displays have a notch: the
 # top of their safe area, which macOS keeps free of windows
 
-# CPU and GPU, so that the memory stays alone, the name of the VPN, so that its shield stays, and the
-# title of the event, so that its time stays
-ITEMS=(cpu gpu network_vpn_name calendar_title)
+# CPU and GPU, so that the memory stays alone, the names of the audio devices, of the Wi-Fi and of
+# the VPN, so that their icons stay, the title of the event, so that its time stays, and the date,
+# so that the hour stays
+ITEMS=(cpu gpu audio_output_name audio_input_name network_name network_vpn_name calendar_title clock_date)
 DISPLAYS="${TMPDIR:-/tmp}/sketchybar_displays.json"
 
 # --query answers nothing while SketchyBar is busy, e.g. at startup

@@ -1,25 +1,24 @@
 #!/bin/sh
 
-# helpers/audio_devices for audio.sh: AirPods Pro as the output, at 80%, with the name macOS gives
-# them, too long for the bar, and a USB microphone as the input, among the devices of a MacBook Pro
-# with a display; three paired Bluetooth devices.
+# helpers/audio_devices for audio.sh: AirPods Pro as the output, at 80%, and a USB microphone as
+# the input, among the devices of a MacBook Pro with a display; three paired Bluetooth devices.
 # Setting a device or a volume does nothing
 
 case "$1:$2:$3" in
-  output::) printf '71\tbluetooth\theadphones\tAirPods Pro di Luca\t80\n' ;;
+  output::) printf '71\tbluetooth\theadphones\tAirPods Pro\t80\n' ;;
   input::) printf '88\tusb\tmicrophone\tShure MV7\t\n' ;;
   volume:output:) echo 45 ;;
   volume:input:) echo 70 ;;
   list::)
     printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
-      output 00-00-00-00-00-71:output 1 bluetooth headphones "AirPods Pro di Luca" 80 \
+      output 00-00-00-00-00-71:output 1 bluetooth headphones "AirPods Pro" 80 \
       output BuiltInSpeakerDevice 0 builtin speaker "Altoparlanti MacBook Pro" "" \
       output 00000000-0000-0000-0000-000000000072 0 display unknown "Studio Display" "" \
       input USB-MV7 1 usb microphone "Shure MV7" "" \
-      input 00-00-00-00-00-71:input 0 bluetooth microphone "AirPods Pro di Luca" 80 \
+      input 00-00-00-00-00-71:input 0 bluetooth microphone "AirPods Pro" 80 \
       input BuiltInMicrophoneDevice 0 builtin microphone "Microfono MacBook Pro" ""
     printf '%s\t%s\t%s\t%s\t%s\n' \
-      bluetooth 00:00:00:00:00:71 1 headphones "AirPods Pro di Luca" \
+      bluetooth 00:00:00:00:00:71 1 headphones "AirPods Pro" \
       bluetooth 00:00:00:00:00:73 0 speaker "JBL Flip 6" \
       bluetooth 00:00:00:00:00:74 0 headset "Sony WH-1000XM5"
     ;;

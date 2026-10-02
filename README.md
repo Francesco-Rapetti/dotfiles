@@ -138,11 +138,12 @@ cambiare `PRIMARY`.
 ![La barra sul MacBook](screenshots/notch.png)
 
 Sul display del MacBook il notch copre il centro della barra, e gli elementi di destra finirebbero
-sotto. Lì CPU e GPU spariscono e resta solo la memoria, della VPN resta solo lo scudo e del
-calendario solo l'orario del prossimo evento, colorato secondo quanto manca (vedi sotto); un clic
-apre gli stessi popup. Gli altri
-monitor mostrano tutto. `plugins/notch.sh` riconosce i display con il notch e sposta gli elementi
-quando colleghi o scolleghi un monitor; quali elementi spariscono lo decide la sua lista `ITEMS`.
+sotto. Lì CPU e GPU spariscono e resta solo la memoria; dell'audio, della rete e della VPN restano
+le icone, con la batteria dei dispositivi e la banda del Wi-Fi; del calendario solo l'orario del
+prossimo evento, colorato secondo quanto manca (vedi sotto), e dell'orologio solo l'ora. Un clic
+apre gli stessi popup. Gli altri monitor mostrano tutto, con i nomi interi.
+`plugins/notch.sh` riconosce i display con il notch e sposta gli elementi quando colleghi o
+scolleghi un monitor; quali elementi spariscono lo decide la sua lista `ITEMS`.
 
 Se la barra è vuota o mancano i workspace:
 
@@ -189,14 +190,17 @@ può non essere quello di AeroSpace.
 ![La rete](screenshots/network.png)
 
 La rete mostra il nome del Wi-Fi, `Ethernet` quando c'è un cavo, `Non connesso` (giallo) o
-`Wi-Fi off` (rosso). Da macOS 14.4 il nome del Wi-Fi è oscurato in `networksetup`, `ipconfig` e
+`Wi-Fi off` (rosso). Dopo il nome del Wi-Fi, più piccola e grigia, c'è la banda: `2,4 GHz`,
+`5 GHz` o `6 GHz`; sul MacBook c'è solo l'icona, diversa per ciascuno stato, con la banda. Da
+macOS 14.4 il nome del Wi-Fi è oscurato in `networksetup`, `ipconfig` e
 `system_profiler`: `plugins/network.sh` lo legge dall'ultima scansione salvata nella configurazione
-di sistema. Se un aggiornamento di macOS chiude anche questa strada, al posto del nome compare
+di sistema, che ha anche il canale e quindi la banda. Se un aggiornamento di macOS chiude anche questa strada, al posto del nome compare
 `Wi-Fi`. Con una VPN attiva, nella stessa pillola, prima della rete come in macOS, compaiono uno
 scudo verde e il suo nome: quello delle VPN di Impostazioni di Sistema e delle app VPN (WireGuard,
 Tailscale…), che macOS elenca in `scutil --nc list`, oppure `VPN` per quelle che macOS non conosce
-ma che si vedono dal loro tunnel (`utun`); sul MacBook c'è solo lo scudo. La barra si aggiorna subito quando cambia la connessione principale e comunque ogni 30
-secondi: la VPN può comparire o sparire con quel ritardo.
+ma che si vedono dal loro tunnel (`utun`); sul MacBook c'è solo lo scudo. La barra si aggiorna
+subito quando cambia la connessione principale e comunque ogni 30 secondi: la VPN può comparire o
+sparire con quel ritardo.
 Un clic sulla rete o sulla VPN apre l'indirizzo IP del Mac, quello pubblico, il router e la VPN, con
 il suo indirizzo. L'IP pubblico lo chiede a [ipify](https://www.ipify.org) a ogni apertura del popup:
 con la VPN è quello della VPN. Finché non arriva quello nuovo resta il precedente, in grigio se nel
@@ -266,8 +270,7 @@ simbolo, hanno il loro con un altoparlante o un microfono. Se sono lo stesso dis
 esempio cuffie Bluetooth, compare solo quello di uscita, e se ha i due simboli con l'altoparlante e
 il microfono affiancati. Lo stesso vale per altoparlanti e microfono del Mac, che diventano il Mac
 stesso, con il suo nome: per esempio `MacBook Pro`, la parte comune a `Altoparlanti MacBook Pro` e
-`Microfono MacBook Pro`. I nomi più lunghi di 14 caratteri si fermano all'ultima parola che ci sta,
-con i puntini (`AirPods Pro…` per `AirPods Pro di Luca`); nel popup sono interi. Dopo il nome dei
+`Microfono MacBook Pro`. Sul MacBook ci sono solo le icone, con la batteria. Dopo il nome dei
 dispositivi Bluetooth c'è la batteria, se macOS la
 conosce: un'icona col livello (rossa dal 20% in giù) e la percentuale, più piccole e grigie del nome
 e aggiornate ogni due minuti. Per gli auricolari conta il lato più scarico.
@@ -335,7 +338,7 @@ SketchyBar Calendar in Impostazioni di Sistema → Privacy e sicurezza → Calen
 
 I testi seguono la lingua del Mac (italiano o inglese, per le altre lingue inglese) e gli orari il
 formato della sua regione, 12 o 24 ore compreso. Anche l'orologio mostra il giorno della settimana
-nella lingua del Mac (`mer 30/09  14:30`).
+nella lingua del Mac (`mer 30/09  14:30`); sul MacBook solo l'ora.
 
 ![L'orologio](screenshots/clock.png)
 
