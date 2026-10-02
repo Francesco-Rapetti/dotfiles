@@ -109,13 +109,17 @@ sketchybar --add item apple left \
 # doesn't say: the helper window_order (rebuilt when its source changes) reads it from macOS.
 # space_windows_change: a window opened or closed. aerospace_windows_change: AeroSpace moved the
 # focus or a window, or put one in fullscreen (on-focus-changed and the alt-shift-<n>,
-# alt-shift-a/s/w/d and alt-f bindings in aerospace.toml)
+# alt-shift-a/s/w/d and alt-f bindings in aerospace.toml).
+# The windows of the apps with notifications to read, those of the green badge (see Notifications
+# below), have a green dot on their icon: notification_badges_change, from notification.sh, says
+# that the apps with one changed
 ORDER_HELPER="$CONFIG_DIR/helpers/window_order"
 if [ ! -x "$ORDER_HELPER" ] || [ "$ORDER_HELPER.swift" -nt "$ORDER_HELPER" ]; then
   swiftc -O "$ORDER_HELPER.swift" -o "$ORDER_HELPER"
 fi
 sketchybar --add event aerospace_workspace_change \
-           --add event aerospace_windows_change
+           --add event aerospace_windows_change \
+           --add event notification_badges_change
 
 # The workspaces share a pill, the bracket spaces between two empty items, spaces.start and
 # spaces.end: aerospace.sh adds and removes the icons between them, and an item can't be in two
@@ -145,7 +149,7 @@ sketchybar --add item spaces.end left \
 sketchybar --add item aerospace left \
            --set aerospace drawing=off script="$PLUGIN_DIR/aerospace.sh" \
            --subscribe aerospace aerospace_workspace_change aerospace_windows_change \
-                                 front_app_switched space_windows_change
+                                 front_app_switched space_windows_change notification_badges_change
 
 # The binding mode of AeroSpace, in a peach pill after the workspaces while it isn't main, e.g.
 # service (alt-shift-semicolon): a click goes back to main. aerospace.sh watch triggers
