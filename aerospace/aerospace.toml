@@ -12,7 +12,8 @@ persistent-workspaces = ['1']
 # Available commands : https://nikitabobko.github.io/AeroSpace/commands
 after-startup-command = [
     'exec-and-forget borders active_color="gradient(top_right=0xfff2cdcd,bottom_left=0xff89dceb)" inactive_color=0x00000000 width=14.0',
-    'exec-and-forget sketchybar',
+    # start.sh starts SketchyBar and starts it again whenever it exits, e.g. after a crash
+    'exec-and-forget ~/.config/sketchybar/start.sh',
     'exec-and-forget sketchybar --reload',
     'exec-and-forget sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$(aerospace list-workspaces --focused)',
 ]
