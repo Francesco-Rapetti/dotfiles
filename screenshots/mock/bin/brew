@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# brew for brew.sh: two outdated formulae of the Brewfile and no casks
+# brew for notification.sh: two outdated formulae of the Brewfile and no casks
 
 case "$1:$*" in
   outdated:*--formula*)

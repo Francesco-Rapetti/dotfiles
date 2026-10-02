@@ -27,7 +27,7 @@ ICON_SIZE=16        # of the recent items; the helper draws them at 4 px per poi
 ICON_GAP=6          # between the icon and the name of a recent item
 ROW_HEIGHT=22
 BADGE_HEIGHT=16
-DIGIT_WIDTH=6       # every digit of BADGE_FONT, as in brew.sh
+DIGIT_WIDTH=6       # every digit of BADGE_FONT, as in notification.sh
 
 # The texts of the Apple menu in Italian, from macOS (HIToolbox.framework, Menus.loctable)
 ABOUT="Informazioni su questo Mac"
@@ -133,7 +133,7 @@ right() {
 }
 
 # badge <count>: sets BADGE to the properties of the badge on the right of a command, a red pill
-# like the one of brew, or to nothing when the count is 0
+# like the red one of the notifications, or to nothing when the count is 0
 badge() {
   BADGE=()
   [ "$1" -gt 0 ] 2>/dev/null || return

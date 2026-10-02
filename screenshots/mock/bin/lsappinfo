@@ -1,0 +1,13 @@
+#!/bin/sh
+
+# lsappinfo for notification.sh: the apps of mock/notification_apps.conf, Slack with 3 unread
+# messages, Mail with 12 and Messages with none. The last argument is the app
+
+for app; do :; done
+case "$app" in
+  com.tinyspeck.slackmacgap) set -- com.tinyspeck.slackmacgap Slack 3 ;;
+  com.apple.mail) set -- com.apple.mail Mail 12 ;;
+  com.apple.MobileSMS) set -- com.apple.MobileSMS Messaggi "" ;;
+  *) exit 0 ;;
+esac
+printf '"CFBundleIdentifier"="%s"\n"LSDisplayName"="%s"\n"StatusLabel"={ "label"="%s" }\n' "$@"
