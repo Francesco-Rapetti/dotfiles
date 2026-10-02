@@ -322,7 +322,7 @@ render_popup() {
   local permission networks known other
   names=() adds=() sets=() subscribes=()
   local items
-  items="$(sketchybar --query connection | jq -r '.popup.items // [] | join(" ")')"
+  items="$(sketchybar --query connection | jq -r '.popup.items // [] | . - ["keep.connection"] | join(" ")')"
   { IFS= read -r permission; networks="$(cat)"; } 2>/dev/null < "$NETWORKS_FILE"
   [ "$WIFI_POWER" = on ] || networks=""
   # The network the Mac is on first, as in the macOS menu

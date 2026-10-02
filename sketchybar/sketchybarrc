@@ -754,5 +754,16 @@ sketchybar --add item notch left \
            --set notch drawing=off script="$PLUGIN_DIR/notch.sh" \
            --subscribe notch display_change
 
+##### Popups #####
+# Each popup has a hidden row of its own, keep.<item>, that no plugin removes. SketchyBar 2.24
+# crashes (it frees memory it never allocated) when an open popup loses all its rows and gets them
+# back while a redraw is still pending: it closes and opens its window, and the redraw ends up
+# destroying it. That is what the plugins do to set rows that changed, removing and adding them
+# again, e.g. audio.sh when a Bluetooth device disconnects. With this row the popup never goes
+# empty, so its window stays. The plugins leave it out when they read their rows
+for item in apple notification calendar battery connection audio_output claude docker system home; do
+  sketchybar --add item "keep.$item" "popup.$item" --set "keep.$item" drawing=off
+done
+
 ##### Force all scripts to run the first time #####
 sketchybar --update

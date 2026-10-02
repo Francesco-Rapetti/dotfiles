@@ -212,7 +212,7 @@ layout() {
 # removing the row under the mouse would close it (mouse.exited.global)
 show() {
   space bottom 4
-  if [ "$(sketchybar --query claude | jq -r '.popup.items | join(" ")')" = "${names[*]}" ]; then
+  if [ "$(sketchybar --query claude | jq -r '.popup.items // [] | . - ["keep.claude"] | join(" ")')" = "${names[*]}" ]; then
     sketchybar "${sets[@]}" --set claude "$@"
   else
     sketchybar --remove '/claude\.row\..*/' "${adds[@]}" "${sets[@]}" --set claude "$@"

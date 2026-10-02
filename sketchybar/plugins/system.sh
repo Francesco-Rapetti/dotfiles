@@ -195,7 +195,7 @@ render_popup() {
   sets+=(--subscribe system.row.activity mouse.entered mouse.exited mouse.clicked)
   space bottom 4
 
-  if [ "$(sketchybar --query system | jq -r '.popup.items // [] | join(" ")')" = "${names[*]}" ]; then
+  if [ "$(sketchybar --query system | jq -r '.popup.items // [] | . - ["keep.system"] | join(" ")')" = "${names[*]}" ]; then
     sketchybar "$@" "${sets[@]}"
   else
     sketchybar --remove '/system\.row\..*/' "${adds[@]}" "${sets[@]}" "$@"
