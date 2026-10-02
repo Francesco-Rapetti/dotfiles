@@ -179,9 +179,10 @@ sketchybar --add item front_app left \
 ##### Right Items #####
 # Notifications, two badges at the right end, each hidden when it has nothing to count: a green one
 # with what the apps of notification_apps.conf have to read, the badges on their icons in the Dock
-# (e.g. the unread messages of Slack), and a red one with the updates for the packages in
-# ../Brewfile. A click on either lists both: a click on an app opens it, a click on a package
-# upgrades it; until AeroSpace restarts on a new version the list also has a row that restarts it.
+# (e.g. the unread messages of Slack), and the crashes of SketchyBar that start.sh logged, and a
+# red one with the updates for the packages in ../Brewfile. A click on either lists both: a click
+# on the crashes opens their log, on an app opens it, on a package upgrades it; until AeroSpace
+# restarts on a new version the list also has a row that restarts it.
 # The popup is the one of the notification item, empty, on the right of the badges: so it opens at
 # the edge of the last one drawn, which with its padding_right of 4 ends 8 from the edge of the
 # screen as the other components. notification.sh runs brew update hourly, on wake and on reload;

@@ -43,7 +43,8 @@ fi
 
 # The CONFIG_DIR of the plugins: the real config, with the helpers of mock/ in place of the real
 # ones, among the images that sketchybarrc made, and next to the Brewfile as in the repo. TMPDIR keeps
-# their locks and caches apart from those of the bar, and has the states of Home Assistant
+# their locks and caches apart from those of the bar, and has the states of Home Assistant and a
+# crash of SketchyBar at 13:52, as start.sh logs them, for the green badge of notification.sh
 WORK="$(mktemp -d)"
 CONFIG="$WORK/sketchybar"
 mkdir -p "$CONFIG/helpers" "$WORK/tmp"
@@ -53,6 +54,7 @@ ln -s "$REPO/sketchybar/helpers/"* "$CONFIG/helpers/"
 ln -sf "$MOCK/helpers/"* "$CONFIG/helpers/"
 ln -s "$REPO/Brewfile" "$WORK/"
 cp "$MOCK/home_assistant.json" "$WORK/tmp/sketchybar_home_assistant.json"
+echo $((MOCK_NOW - 18 * 60)) > "$WORK/tmp/sketchybar_crashes"
 
 restore() {
   sketchybar --reload

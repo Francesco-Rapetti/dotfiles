@@ -2,17 +2,18 @@
 
 # Notifications, as two badges at the right end of the bar that share a popup. The green one,
 # notification_apps, counts what the apps of notification_apps.conf have to read: the badges on
-# their icons in the Dock, e.g. the unread messages of Slack. The red one, notification_brew, counts
-# the updates for the Homebrew packages in the Brewfile at the root of the dotfiles. Each hides when
-# it has nothing to count.
-# The popup lists the apps with their badge, where a click opens one, then the packages with the
-# installed and the new version: a click on one upgrades it, "Aggiorna tutto" upgrades them all.
+# their icons in the Dock, e.g. the unread messages of Slack; and the crashes of SketchyBar that
+# ../start.sh logged. The red one, notification_brew, counts the updates for the Homebrew packages
+# in the Brewfile at the root of the dotfiles. Each hides when it has nothing to count.
+# The popup lists the crashes, in a row that opens their log, then the apps with their badge, where
+# a click opens one, then the packages with the installed and the new version: a click on one
+# upgrades it, "Aggiorna tutto" upgrades them all.
 # AeroSpace keeps running the old version after an upgrade: until it restarts the popup also has
 # "Riavvia AeroSpace", counted in the red badge, and the notification of the upgrade opens the popup.
-# macOS doesn't tell when a badge changes: sketchybarrc runs this with watch, which reads them every
-# POLL seconds and triggers notification_change when they change. The notification item runs this
-# with no arguments, each popup row with open <bundle id>, restart or the <formula|cask> <name>
-# pairs it upgrades. SketchyBar kills its scripts after 60 seconds, so brew runs in the background
+# macOS doesn't tell when a badge changes: sketchybarrc runs this with watch, which reads them, and
+# the crashes, every POLL seconds and triggers notification_change when they change. The
+# notification item runs this with no arguments, each popup row with crash, open <bundle id>,
+# restart or the <formula|cask> <name> pairs it upgrades. SketchyBar kills its scripts after 60 seconds, so brew runs in the background
 
 APPS="$CONFIG_DIR/notification_apps.conf"
 BREWFILE="$CONFIG_DIR/../Brewfile"
@@ -21,9 +22,13 @@ RENDER_LOCK="${TMPDIR:-/tmp}/sketchybar_notification.lock"
 LOCK="${TMPDIR:-/tmp}/sketchybar_brew.lock"
 BUSY="${TMPDIR:-/tmp}/sketchybar_brew_busy"
 LOG="$HOME/Library/Logs/sketchybar-brew.log"
+CRASHES="${TMPDIR:-/tmp}/sketchybar_crashes"  # from ../start.sh: the time of each crash not seen yet
+CRASH_LOG="$HOME/Library/Logs/sketchybar-crash.log"
 
 source "$CONFIG_DIR/colors.sh"
 
+CRASHED="Crash di SketchyBar"
+CRASHED_MANY="crash di SketchyBar"  # after their number
 UPGRADING="aggiornamento…"
 UPGRADE_ALL="Aggiorna tutto"
 RESTART="Riavvia AeroSpace"
@@ -137,10 +142,25 @@ badge() {
 # Rebuilds the badges and the popup rows from the badges of the apps and what check found, or hides
 # them when both are empty. During an upgrade or a restart it keeps what busy shows
 draw() {
-  local bundles=() apps=() labels=() unread=0 bundle app label digits
+  local bundles=() apps=() labels=() scripts=() unread=0 bundle app label digits
+
+  # The crashes first, in a row like the ones of the apps, with the icon of Console, where it opens
+  # their log, and the time of the last one, or its day if it wasn't today. Each counts one
+  local crashes last
+  crashes=$(grep -c . "$CRASHES" 2>/dev/null)
+  if [ "${crashes:-0}" -gt 0 ]; then
+    last=$(tail -1 "$CRASHES")
+    label=$(date -r "$last" +%H:%M)
+    [ "$(date -r "$last" +%F)" = "$(date +%F)" ] || label=$(date -r "$last" +%-d/%-m)
+    app=$CRASHED
+    [ "$crashes" -gt 1 ] && app="$crashes $CRASHED_MANY"
+    bundles+=(com.apple.Console) apps+=("$app") labels+=("$label") scripts+=("$0 crash")
+    unread=$crashes
+  fi
+
   while IFS=$'\t' read -r bundle app label; do
     [ -n "$bundle" ] || continue
-    bundles+=("$bundle") apps+=("$app") labels+=("$label")
+    bundles+=("$bundle") apps+=("$app") labels+=("$label") scripts+=("$0 open $bundle")
     # A badge without a number, e.g. the dot of Slack for unread channels, counts as one
     digits="${label//[^0-9]/}"
     unread=$((unread + ${digits:+10#}${digits:-1}))
@@ -214,7 +234,7 @@ draw() {
             --set "$item" "${row[@]}" icon="${apps[i]}" icon.padding_left=$((PADDING + APP_ICON + ICON_GAP))
                   icon.background.drawing=on icon.background.image="app.${bundles[i]}"
                   icon.background.image.scale=0.5 icon.background.image.padding_left=$PADDING
-                  label="${labels[i]}" script="$0 open ${bundles[i]}"
+                  label="${labels[i]}" script="${scripts[i]}"
             --subscribe "$item" mouse.entered mouse.exited mouse.clicked)
   done
   if [ ${#apps[@]} -gt 0 ] && [ $updates -gt 0 ]; then
@@ -332,7 +352,9 @@ check() {
 }
 
 # A daemon keeps running the old version after an upgrade: restart it the way AeroSpace starts it
-# at login, running its after-startup-command lines in aerospace.toml all at once
+# at login, running its after-startup-command lines in aerospace.toml all at once. SketchyBar
+# starts again by itself, since ../start.sh starts it again whenever it exits: its lines only
+# reload it
 restart_daemon() {
   pgrep -qx "$1" || return
   local config commands command i
@@ -417,13 +439,13 @@ restart_aerospace() {
   sketchybar --trigger brew_update
 }
 
-# watch: triggers notification_change whenever the badges of the apps change. A reload of
-# SketchyBar starts a new one and stops the old one
+# watch: triggers notification_change whenever the badges of the apps or the crashes change. A
+# reload of SketchyBar starts a new one and stops the old one
 watch() {
   trap 'pkill -P $$; exit 0' TERM INT HUP
   local badges last
   while :; do
-    badges="$(app_badges)"
+    badges="$(app_badges; cat "$CRASHES" 2>/dev/null)"
     if [ "$badges" != "$last" ]; then
       sketchybar --trigger notification_change
       last="$badges"
@@ -438,14 +460,21 @@ if [ "$1" = watch ]; then
   exit 0
 fi
 
-# A popup row: open, restart, or the packages it upgrades. The rows of brew ignore the mouse during
-# an upgrade or a restart
+# A popup row: crash, open, restart, or the packages it upgrades. The rows of brew ignore the mouse
+# during an upgrade or a restart
 if [ $# -gt 0 ]; then
   case "$SENDER" in
-    mouse.entered) { [ "$1" = open ] || ! locked; } && sketchybar --set "$NAME" background.color=$HIGHLIGHT ;;
+    mouse.entered) { [ "$1" = crash ] || [ "$1" = open ] || ! locked; } && sketchybar --set "$NAME" background.color=$HIGHLIGHT ;;
     mouse.exited) sketchybar --set "$NAME" background.color=$TRANSPARENT ;;
     mouse.clicked)
       case "$1" in
+        # The crashes are seen once their log is open
+        crash)
+          sketchybar --set notification popup.drawing=off
+          rm -f "$CRASHES"
+          open -a Console "$CRASH_LOG"
+          render
+          ;;
         open)
           sketchybar --set notification popup.drawing=off
           open -b "$2"

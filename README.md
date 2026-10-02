@@ -12,6 +12,7 @@ dotfiles/
 ├── aerospace/aerospace.toml   → ~/.config/aerospace
 ├── sketchybar/                → ~/.config/sketchybar
 │   ├── sketchybarrc
+│   ├── start.sh               (avvia SketchyBar e lo riavvia quando si chiude)
 │   ├── colors.sh              (la palette, condivisa da sketchybarrc e dai plugin)
 │   ├── notification_apps.conf (le app di cui contare le notifiche)
 │   ├── home_assistant.conf.example  (da copiare in home_assistant.conf, che non è nel repo)
@@ -113,9 +114,12 @@ open -a AeroSpace
 
 - Al primo avvio concedi il permesso di **Accessibilità** (Impostazioni di Sistema → Privacy e
   sicurezza → Accessibilità → AeroSpace).
-- AeroSpace si avvia da solo al login (`start-at-login = true`) e a sua volta lancia `sketchybar`
-  e `borders` (`after-startup-command` in `aerospace.toml`). **Non** attivare
-  `brew services start sketchybar` o `borders`: partirebbero due istanze.
+- AeroSpace si avvia da solo al login (`start-at-login = true`) e a sua volta lancia `borders` e
+  `sketchybar/start.sh` (`after-startup-command` in `aerospace.toml`), che avvia `sketchybar` e lo
+  riavvia ogni volta che si chiude, per esempio dopo un crash. **Non** attivare
+  `brew services start sketchybar` o `borders`: partirebbero due istanze, e i plugin di SketchyBar
+  girerebbero con un altro `PATH`. Per chiudere SketchyBar davvero ferma prima `start.sh`:
+  `pkill -f sketchybar/start.sh; pkill -x sketchybar`.
 
 ### 7. Verifica
 
@@ -355,11 +359,12 @@ sul mese apre Calendario. SketchyBar non sa disporre gli elementi di un popup in
 il mese è un'immagine che `helpers/calendar_month.swift` disegna ogni volta che si apre, con i pixel
 del monitor su cui si apre (compilato da `sketchybarrc`, non è nel repo).
 
-![Le notifiche e gli aggiornamenti di Homebrew](screenshots/notification.png)
+![Le notifiche, i crash di SketchyBar e gli aggiornamenti di Homebrew](screenshots/notification.png)
 
 All'estrema destra ci sono le notifiche, due pallini che compaiono solo quando hanno qualcosa da
-contare: uno verde per le notifiche da leggere delle app scelte e uno rosso per gli aggiornamenti
-di Homebrew. Un clic su uno dei due apre lo stesso elenco: prima le app, poi i pacchetti.
+contare: uno verde per le notifiche da leggere delle app scelte e per i crash di SketchyBar, e uno
+rosso per gli aggiornamenti di Homebrew. Un clic su uno dei due apre lo stesso elenco: prima i
+crash, poi le app, poi i pacchetti.
 
 Il pallino verde somma i badge che le app di `sketchybar/notification_apps.conf` hanno sulla loro
 icona nel Dock, per esempio i messaggi non letti di Slack: si aggiorna entro 2 secondi e sparisce
@@ -372,15 +377,24 @@ aggiorna la barra quando cambiano. Le app chiuse non hanno badge, e un'app che n
 nessuno sull'icona non si può seguire così: il testo delle notifiche è nel database del Centro
 Notifiche, che macOS apre solo con l'Accesso completo al disco.
 
+Il pallino verde conta anche i crash di SketchyBar. `sketchybar/start.sh`, che AeroSpace lancia al
+posto di `sketchybar`, lo fa ripartire ogni volta che si chiude e, se si è chiuso per un crash,
+scrive in `~/Library/Logs/sketchybar-crash.log` cosa dice il report di macOS: l'eccezione, le
+versioni di SketchyBar e di macOS, lo stack del thread del crash e il percorso del report completo,
+che si apre con Console. Il crash più recente è in cima. Nell'elenco compare *Crash di SketchyBar*
+con l'ora dell'ultimo (o il giorno, se non era oggi): un clic apre il log in Console e il pallino
+smette di contarli. Se SketchyBar si chiude meno di 10 secondi dopo essere partito, `start.sh`
+aspetta 10 secondi prima di riavviarlo, così un crash all'avvio non lo fa ripartire di continuo.
+
 Il pallino rosso compare quando uno dei pacchetti del `Brewfile` ha una nuova versione su Homebrew,
 con quanti sono. Nell'elenco ognuno ha la versione installata e quella nuova (`1.8.4 → 1.9.0`), un
 clic su un pacchetto lo aggiorna e, se sono più di uno, c'è anche *Aggiorna tutto*, che aggiorna
 solo quelli dell'elenco: gli altri pacchetti di Homebrew restano com'erano, tranne le dipendenze di
 cui una nuova versione ha bisogno. Durante l'aggiornamento il pallino diventa giallo e gli altri
 clic sui pacchetti vengono ignorati. `plugins/notification.sh` esegue `brew update` ogni ora, al
-risveglio e a ogni `sketchybar --reload`. Dopo l'aggiornamento riavvia `sketchybar` e `borders` con
-i loro comandi di `after-startup-command` in `aerospace.toml`, così usano subito la nuova
-versione. Se un aggiornamento non riesce compare una notifica, e un clic apre l'output di brew
+risveglio e a ogni `sketchybar --reload`. Dopo l'aggiornamento riavvia `sketchybar`, che `start.sh`
+fa ripartire da solo, e `borders`, con il suo comando di `after-startup-command` in
+`aerospace.toml`, così usano subito la nuova versione. Se un aggiornamento non riesce compare una notifica, e un clic apre l'output di brew
 (`~/Library/Logs/sketchybar-brew.log`). `font-sf-pro` ha versione `latest`, quindi Homebrew non lo
 segnala mai come da aggiornare.
 
@@ -554,7 +568,7 @@ Infine `git commit` e `git push` come in qualsiasi repo.
 
 Le immagini del README sono in `screenshots/` e le fa `screenshots/take.sh` con dati inventati:
 fa girare i plugin come li fa girare SketchyBar, sulla barra vera, ma con gli helper e i comandi di
-`screenshots/mock` (account, dispositivi, eventi, Wi-Fi, container, badge delle app e Home Assistant finti), e cattura solo le
+`screenshots/mock` (account, dispositivi, eventi, Wi-Fi, container, badge delle app, un crash e Home Assistant finti), e cattura solo le
 finestre di SketchyBar, quindi niente scrivania né finestre sotto i popup. Per qualche secondo la
 barra mostra quei dati e apre i popup uno alla volta, poi `sketchybar --reload` la rimette com'era.
 
