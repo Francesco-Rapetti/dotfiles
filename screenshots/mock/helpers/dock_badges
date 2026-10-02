@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# helpers/dock_badges for notification.sh: in the Dock Slack has 3 unread messages, Mail 12 and
+# System Settings an update, which isn't in mock/notification_apps.conf
+
+printf 'com.tinyspeck.slackmacgap\tSlack\t3\n'
+printf 'com.apple.mail\tMail\t12\n'
+printf 'com.apple.systempreferences\tImpostazioni di Sistema\t1\n'

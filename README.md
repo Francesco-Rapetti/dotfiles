@@ -372,13 +372,17 @@ Il pallino verde somma i badge che le app di `sketchybar/notification_apps.conf`
 icona nel Dock, per esempio i messaggi non letti di Slack: si aggiorna entro 2 secondi e sparisce
 quando li leggi nell'app. Un badge senza numero, come il punto di Slack per i canali non letti,
 conta uno. Nell'elenco ogni app ha la sua icona e il suo badge, e un clic la apre; nei workspace
-le sue finestre hanno un pallino verde sull'icona. Nel file c'è
-un'app per riga, con il suo bundle id (`osascript -e 'id of app "Nome App"'`) o il nome; le
-modifiche valgono subito, senza ricaricare la barra. macOS non avvisa quando cambia un badge, quindi
-`sketchybarrc` avvia `plugins/notification.sh watch`, che li legge con `lsappinfo` ogni 2 secondi e
-aggiorna la barra quando cambiano. Le app chiuse non hanno badge, e un'app che non ne mette
-nessuno sull'icona non si può seguire così: il testo delle notifiche è nel database del Centro
-Notifiche, che macOS apre solo con l'Accesso completo al disco.
+le sue finestre hanno un pallino verde sull'icona. Nel file c'è un'app per riga, con il suo bundle
+id (`osascript -e 'id of app "Nome App"'`) o il nome che ha nel Dock; le modifiche valgono subito,
+senza ricaricare la barra. macOS non avvisa quando cambia un badge, quindi `sketchybarrc` avvia
+`plugins/notification.sh watch`, che li legge ogni 2 secondi e aggiorna la barra quando cambiano.
+Li legge dal Dock, che li dice solo all'API di Accessibilità, con `helpers/dock_badges.swift`
+(compilato da `sketchybarrc`, non è nel repo): SketchyBar ha il permesso di AeroSpace, che lo
+avvia. Senza il permesso li chiede a `lsappinfo`, che però conosce solo quelli delle app per Mac:
+non quelli delle app per iPhone e iPad, come WhatsApp, che li mettono con le notifiche. Le app
+chiuse non hanno badge, e un'app che non ne mette nessuno sull'icona non si può seguire così: il
+testo delle notifiche è nel database del Centro Notifiche, che macOS apre solo con l'Accesso
+completo al disco.
 
 Il pallino verde conta anche i crash di SketchyBar. `sketchybar/start.sh`, che AeroSpace lancia al
 posto di `sketchybar`, lo fa ripartire ogni volta che si chiude e, se si è chiuso per un crash,
