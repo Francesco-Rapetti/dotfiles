@@ -12,6 +12,72 @@
 # so that the hour stays
 ITEMS=(cpu gpu audio_output_name audio_input_name network_name network_vpn_name calendar_title clock_date)
 DISPLAYS="${TMPDIR:-/tmp}/sketchybar_displays.json"
+RESTARTED="${TMPDIR:-/tmp}/sketchybar_displays_restarted"  # the displays of macOS at the last restart
+LOG="$HOME/Library/Logs/sketchybar-crash.log"  # the one of ../start.sh
+
+# known_displays: the DirectDisplayID and the frame (x y w h) of each display SketchyBar knows, one
+# per line
+known_displays() {
+  sketchybar --query displays | jq -r '.[] | [.DirectDisplayID, (.frame | .x, .y, .w, .h | round)] | join(" ")' \
+    | sort -n
+}
+
+# screens: the same for the displays of macOS, from NSScreen, whose frames start at the bottom left
+# of the main display rather than at the top left
+screens() {
+  osascript -l JavaScript - <<'EOF' | sort -n
+ObjC.import('AppKit')
+function run() {
+  const screens = $.NSScreen.screens
+  const height = screens.objectAtIndex(0).frame.size.height
+  const lines = []
+  for (let i = 0; i < screens.count; i++) {
+    const screen = screens.objectAtIndex(i), frame = screen.frame
+    lines.push([screen.deviceDescription.objectForKey('NSScreenNumber').js, frame.origin.x,
+      height - frame.origin.y - frame.size.height, frame.size.width, frame.size.height].map(Math.round).join(' '))
+  }
+  return lines.join('\n')
+}
+EOF
+}
+
+# stale: whether SketchyBar knows other displays than macOS. Not when it answers nothing
+stale() {
+  local known
+  known="$(known_displays)"
+  [ -n "$known" ] && [ "$known" != "$(screens)" ]
+}
+
+# SketchyBar may miss the displays changing while the Mac sleeps, e.g. the MacBook's going away
+# when it wakes with the lid closed on a monitor: it keeps drawing the bar where the old displays
+# were, now on no screen, and --reload doesn't help. So a few seconds after a wake, when the
+# displays are back, and whenever the active display changes, its displays are compared with those
+# of macOS: if they still differ 5 seconds later, SketchyBar is stopped, and ../start.sh starts it
+# again. Only once for the same displays of macOS, in case a SketchyBar just started sees them
+# differently too
+if [ "$SENDER" = system_woke ] || [ "$SENDER" = display_change ]; then
+  [ "$SENDER" = system_woke ] && sleep 10
+  if stale && sleep 5 && stale; then
+    screens="$(screens)"
+    if [ "$screens" != "$(cat "$RESTARTED" 2>/dev/null)" ] && pgrep -qf 'sketchybar/start\.sh'; then
+      echo "$screens" > "$RESTARTED"
+      entry="$(
+        echo "=== $(date '+%d/%m/%Y %H:%M:%S') ==="
+        echo "SketchyBar conosceva schermi diversi da quelli di macOS ed è ripartito (id x y larghezza altezza)."
+        echo "SketchyBar:"
+        known_displays | sed 's/^/  /'
+        echo "macOS:"
+        sed 's/^/  /' <<< "$screens"
+      )"
+      { printf '%s\n\n' "$entry"; cat "$LOG" 2>/dev/null; } > "$LOG.$$"
+      mv "$LOG.$$" "$LOG"
+      pkill -x sketchybar
+      exit 0
+    fi
+  else
+    rm -f "$RESTARTED"
+  fi
+fi
 
 # --query answers nothing while SketchyBar is busy, e.g. at startup
 for ((i = 0; i < 25; i++)); do

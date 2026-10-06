@@ -149,6 +149,14 @@ prossimo evento, colorato secondo quanto manca (vedi sotto), e dell'orologio sol
 apre gli stessi popup. Gli altri monitor mostrano tutto, con i nomi interi.
 `plugins/notch.sh` riconosce i display con il notch e sposta gli elementi quando colleghi o
 scolleghi un monitor; quali elementi spariscono lo decide la sua lista `ITEMS`.
+A volte SketchyBar non si accorge che gli schermi sono cambiati mentre il Mac dormiva (per esempio
+quando lo risvegli chiuso, collegato a un monitor) e continua a disegnare la barra dove stavano
+quelli vecchi, cioè su nessuno schermo; `sketchybar --reload` non basta. Per questo `notch.sh`,
+10 secondi dopo il risveglio e ogni volta che cambia lo schermo attivo, confronta gli schermi di
+SketchyBar con quelli di macOS: se sono ancora diversi 5 secondi dopo, chiude SketchyBar, che
+`start.sh` fa ripartire, e scrive gli schermi dell'uno e dell'altro in
+`~/Library/Logs/sketchybar-crash.log`. Lo fa una volta sola per gli stessi schermi, così non riparte
+di continuo se un SketchyBar appena avviato li vede diversi anche lui.
 
 Se la barra è vuota o mancano i workspace:
 

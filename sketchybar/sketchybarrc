@@ -760,10 +760,11 @@ pkill -x home_assistant
 # audio devices, the connection and the VPN with only their icons, the event with only its time and
 # the clock with only the hour. SketchyBar numbers the displays by their arrangement, which changes
 # as displays come and go: display_change fires then, and whenever another display becomes the
-# active one
+# active one. Then and after a wake notch.sh also restarts SketchyBar if it missed the displays
+# changing, which leaves the bar on no screen
 sketchybar --add item notch left \
            --set notch drawing=off script="$PLUGIN_DIR/notch.sh" \
-           --subscribe notch display_change
+           --subscribe notch display_change system_woke
 
 ##### Popups #####
 # Each popup has a hidden row of its own, keep.<item>, that no plugin removes. SketchyBar 2.24
