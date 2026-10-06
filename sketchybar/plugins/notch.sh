@@ -41,24 +41,51 @@ function run() {
 EOF
 }
 
-# stale: whether SketchyBar knows other displays than macOS. Not when it answers nothing
-stale() {
-  local known
-  known="$(known_displays)"
-  [ -n "$known" ] && [ "$known" != "$(screens)" ]
+# watch <checks> [stop]: compares the displays of SketchyBar with those of macOS every INTERVAL
+# seconds, that many times at most, and succeeds as soon as they have differed for SETTLE checks in
+# a row while those of macOS stayed the same. With stop it fails as soon as they are the same.
+# SketchyBar answering nothing counts as the same. Sets SCREENS to the displays of macOS
+watch() {
+  local i known previous="" count=0
+  for ((i = 0; i < $1; i++)); do
+    [ $i -gt 0 ] && sleep $INTERVAL
+    known="$(known_displays)"
+    SCREENS="$(screens)"
+    if [ -z "$known" ] || [ "$known" = "$SCREENS" ]; then
+      [ "$2" = stop ] && return 1
+      count=0
+    elif [ "$SCREENS" = "$previous" ]; then
+      count=$((count + 1))
+    else
+      count=1
+    fi
+    [ $count -ge $SETTLE ] && return 0
+    previous="$SCREENS"
+  done
+  return 1
 }
 
 # SketchyBar may miss the displays changing while the Mac sleeps, e.g. the MacBook's going away
 # when it wakes with the lid closed on a monitor: it keeps drawing the bar where the old displays
-# were, now on no screen, and --reload doesn't help. So a few seconds after a wake, when the
-# displays are back, and whenever the active display changes, its displays are compared with those
-# of macOS: if they still differ 5 seconds later, SketchyBar is stopped, and ../start.sh starts it
-# again. Only once for the same displays of macOS, in case a SketchyBar just started sees them
-# differently too
+# were, now on no screen, and --reload doesn't help. So its displays are compared with those of
+# macOS: for 20 seconds after a wake, since the displays come back one at a time, and whenever the
+# active display changes, until they are the same (most times at the first check). If they still
+# differ after SETTLE checks, SketchyBar is stopped, and ../start.sh starts it again: a few seconds
+# after the displays settle, often before the password is in. Only once for the same displays of
+# macOS, in case a SketchyBar just started sees them differently too. Each check is an osascript,
+# ~0.05 s of CPU: every 2 seconds rather than every second, to keep a wake light
+INTERVAL=2
+WAKE_CHECKS=10
+CHANGE_CHECKS=5
+SETTLE=2
 if [ "$SENDER" = system_woke ] || [ "$SENDER" = display_change ]; then
-  [ "$SENDER" = system_woke ] && sleep 10
-  if stale && sleep 5 && stale; then
-    screens="$(screens)"
+  if [ "$SENDER" = system_woke ]; then
+    watch $WAKE_CHECKS
+  else
+    watch $CHANGE_CHECKS stop
+  fi
+  if [ $? -eq 0 ]; then
+    screens="$SCREENS"
     if [ "$screens" != "$(cat "$RESTARTED" 2>/dev/null)" ] && pgrep -qf 'sketchybar/start\.sh'; then
       echo "$screens" > "$RESTARTED"
       entry="$(
