@@ -170,17 +170,14 @@ sketchybar --reload
 
 ![Il menu Apple](screenshots/apple.png)
 
-Il logo Apple sostituisce quello della barra dei menu, che SketchyBar copre: un clic apre gli stessi
-comandi, con i testi di macOS (*Informazioni su questo Mac*, *Impostazioni di Sistema…*,
-*App Store…*, *Elementi recenti*, *Uscita forzata…*, *Standby*, *Riavvia…*, *Spegni…*,
-*Blocca schermo*, *Esegui il logout da …*) e le loro scorciatoie. Fanno quello che fa il menu vero:
+Il logo Apple sostituisce quello della barra dei menu, che SketchyBar copre: un clic apre i suoi
+comandi, con i testi di macOS (*Informazioni su questo Mac*, *Uscita forzata…*, *Standby*,
+*Riavvia…*, *Spegni…*, *Blocca schermo*, *Esegui il logout da …*) e le loro scorciatoie, senza
+*Impostazioni di Sistema…*, *App Store…* ed *Elementi recenti*. Fanno quello che fa il menu vero:
 riavvio, spegnimento e logout chiedono conferma con la finestra di macOS, che li esegue da sola dopo
-un minuto. Accanto a Impostazioni di Sistema e all'App Store c'è il numero degli avvisi e degli
-aggiornamenti, lo stesso del Dock, e con aggiornamenti l'App Store si apre su quelli. *Elementi
-recenti* si apre dentro il menu, sotto la sua riga, con le app, i documenti e i server recenti e
-*Cancella menu*: un sottomenu accanto si chiuderebbe appena ci porti sopra il mouse. macOS non ha un
-comando da terminale per gli elementi recenti e per bloccare lo schermo, quindi `sketchybarrc`
-compila `helpers/apple_menu.swift` (non è nel repo). La prima volta che usi *Uscita forzata…*,
+un minuto. Le righe non cambiano mai, quindi `apple.sh` le crea al primo clic e ai successivi apre
+solo il menu. macOS non ha un comando da terminale per bloccare lo schermo, quindi `sketchybarrc`
+compila `helpers/apple_menu.swift` (il programma compilato non è nel repo). La prima volta che usi *Uscita forzata…*,
 *Riavvia…*, *Spegni…* o il logout macOS potrebbe chiedere di consentire a SketchyBar di controllare
 loginwindow: scegli *Consenti*.
 

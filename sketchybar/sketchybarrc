@@ -69,8 +69,8 @@ popup=(
 
 ##### Apple Menu #####
 # The  menu of the menu bar, which SketchyBar covers: a click on the apple opens its commands.
-# macOS has no command line tool for Recent Items and Lock Screen, so apple.sh asks a Swift helper
-# (rebuilt when its source changes)
+# macOS has no command line tool for Lock Screen, so apple.sh asks a Swift helper (rebuilt when its
+# source changes)
 APPLE_HELPER="$CONFIG_DIR/helpers/apple_menu"
 if [ ! -x "$APPLE_HELPER" ] || [ "$APPLE_HELPER.swift" -nt "$APPLE_HELPER" ]; then
   swiftc -O "$APPLE_HELPER.swift" -o "$APPLE_HELPER"

@@ -1,9 +1,0 @@
-#!/bin/sh
-
-# defaults for apple.sh: 2 updates on the App Store. The rest, e.g. the language for clock.sh, is
-# the Mac's
-
-case "$*" in
-  "read com.apple.appstored BadgeCount") echo 2 ;;
-  *) exec /usr/bin/defaults "$@" ;;
-esac

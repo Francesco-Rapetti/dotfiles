@@ -204,9 +204,10 @@ shot_notch() {
   run notch notch forced
   return $status
 }
+# apple.sh adds the rows only when they aren't there: those of the bar have the real name
 shot_apple() {
+  sketchybar --remove '/apple\..*/'
   run apple apple mouse.clicked
-  run apple apple.recent mouse.clicked -- recent
   snap apple apple apple
 }
 # The workspaces in the service mode, which the bar shows only while it is on
