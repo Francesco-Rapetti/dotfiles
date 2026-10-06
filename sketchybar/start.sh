@@ -11,13 +11,15 @@
 
 LOG="$HOME/Library/Logs/sketchybar-crash.log"
 CRASHES="${TMPDIR:-/tmp}/sketchybar_crashes"  # for notification.sh: the time of each crash, one per line
-LOCK="${TMPDIR:-/tmp}/sketchybar_start.lock"
+LOCK="$HOME/Library/Caches/sketchybar_start.lock"  # not in TMPDIR: see below
 REPORTS="$HOME/Library/Logs/DiagnosticReports"
 REPORT_WAIT=60  # seconds that macOS may take to write the crash report
 SHORT_RUN=10    # a SketchyBar that exits sooner, e.g. at every start, waits as long to start again
 
 # Only one at a time, since AeroSpace runs this again whenever it restarts. The lock holds the pid
-# of the one running, and survives a reboot: then the pid may be another process's
+# of the one running, and survives a reboot: then the pid may be another process's. macOS deletes
+# the files in TMPDIR that nobody has read for 3 days, as this one while SketchyBar runs, and
+# then a restart of AeroSpace would start another one beside it
 if ! shlock -f "$LOCK" -p $$; then
   ps -o command= -p "$(cat "$LOCK")" | grep -q 'sketchybar/start\.sh' && exit 0
   echo $$ > "$LOCK"
