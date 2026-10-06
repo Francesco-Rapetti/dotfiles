@@ -10,10 +10,11 @@
 # upgrades it, "Aggiorna tutto" upgrades them all.
 # AeroSpace keeps running the old version after an upgrade: until it restarts the popup also has
 # "Riavvia AeroSpace", counted in the red badge, and the notification of the upgrade opens the popup.
-# The apps with a badge are saved in BADGED for aerospace.sh, which draws a green dot on their
-# windows and runs again with notification_badges_change when they change.
-# macOS doesn't tell when a badge changes: sketchybarrc runs this with watch, which reads them, and
-# the crashes, every POLL seconds and triggers notification_change when they change. The
+# Every app with a badge in the Dock, also those not in notification_apps.conf, is saved in BADGED
+# for aerospace.sh, which draws a green dot on their windows and runs again with
+# notification_badges_change when they change.
+# macOS doesn't tell when a badge changes: sketchybarrc runs this with watch, which reads them all,
+# and the crashes, every POLL seconds and triggers notification_change when they change. The
 # notification item runs this with no arguments, each popup row with crash, open <bundle id>,
 # restart or the <formula|cask> <name> pairs it upgrades. SketchyBar kills its scripts after 60 seconds, so brew runs in the background
 
@@ -92,39 +93,43 @@ aerospace_restart_version() {
   [ -n "$running" ] && [ "$running" != "$command" ] && echo "$command"
 }
 
-# <bundle id>\t<name>\t<badge> for each app of notification_apps.conf, by bundle id or name, with
-# a badge on its icon in the Dock, in the order of the file. helpers/dock_badges reads the badges
-# from the Dock. Without the Accessibility permission lsappinfo, which knows only the running apps
-# and only the badges of NSDockTile: not those of the apps of iOS, e.g. WhatsApp
-app_badges() {
-  [ -f "$APPS" ] || return
-  local apps dock app bundle name label
-  apps="$(sed -E 's/#.*//; s/^[[:space:]]+//; s/[[:space:]]+$//; /^$/d' "$APPS")"
-  [ -n "$apps" ] || return
-  if dock="$("$CONFIG_DIR/helpers/dock_badges" 2>/dev/null)"; then
-    while IFS= read -r app; do
-      while IFS=$'\t' read -r bundle name label; do
-        if [ "$app" = "$bundle" ] || [ "$app" = "$name" ]; then
-          printf '%s\t%s\t%s\n' "$bundle" "$name" "$label"
-        fi
-      done <<< "$dock"
-    done <<< "$apps"
-    return
-  fi
+# <bundle id>\t<name>\t<badge> for each app with a badge on its icon in the Dock.
+# helpers/dock_badges reads them from the Dock. Without the Accessibility permission lsappinfo,
+# which knows only the running apps and only the badges of NSDockTile: not those of the apps of
+# iOS, e.g. WhatsApp
+dock_badges() {
+  "$CONFIG_DIR/helpers/dock_badges" 2>/dev/null && return
 
   # e.g. "CFBundleIdentifier"="com.tinyspeck.slackmacgap", "LSDisplayName"="Slack" and
   # "StatusLabel"={ "label"="3" }, each on its line
-  local info label_pattern='"StatusLabel"=[{] "label"="([^"]+)"'
+  local asn info bundle name label label_pattern='"StatusLabel"=[{] "label"="([^"]+)"'
   local bundle_pattern='"CFBundleIdentifier"="([^"]+)"' name_pattern='"LSDisplayName"="([^"]+)"'
-  while IFS= read -r app; do
-    info="$(lsappinfo info -only CFBundleIdentifier -only LSDisplayName -only StatusLabel "$app" 2>/dev/null)"
+  # The apps with an icon in the Dock, as ASN:0x0-0xb09b090-"Slack":
+  for asn in $(lsappinfo visibleProcessList -includeHidden | grep -oE 'ASN:0x[0-9a-f]+-0x[0-9a-f]+'); do
+    info="$(lsappinfo info -only CFBundleIdentifier -only LSDisplayName -only StatusLabel "$asn" 2>/dev/null)"
     [[ $info =~ $label_pattern ]] || continue
     label="${BASH_REMATCH[1]}"
     [[ $info =~ $bundle_pattern ]] || continue
     bundle="${BASH_REMATCH[1]}"
-    name="$app"
+    name="$bundle"
     [[ $info =~ $name_pattern ]] && name="${BASH_REMATCH[1]}"
     printf '%s\t%s\t%s\n' "$bundle" "$name" "$label"
+  done
+}
+
+# app_badges <badges of dock_badges>: those of the apps of notification_apps.conf, by bundle id or
+# name, in the order of the file
+app_badges() {
+  [ -f "$APPS" ] || return
+  local apps app bundle name label
+  apps="$(sed -E 's/#.*//; s/^[[:space:]]+//; s/[[:space:]]+$//; /^$/d' "$APPS")"
+  [ -n "$apps" ] || return
+  while IFS= read -r app; do
+    while IFS=$'\t' read -r bundle name label; do
+      if [ "$app" = "$bundle" ] || [ "$app" = "$name" ]; then
+        printf '%s\t%s\t%s\n' "$bundle" "$name" "$label"
+      fi
+    done <<< "$1"
   done <<< "$apps"
 }
 
@@ -183,15 +188,18 @@ draw() {
     unread=$crashes
   fi
 
-  local badged=""
+  # The dots of aerospace.sh are on the windows of every app with a badge, the badge in the bar
+  # counts only those of notification_apps.conf
+  local dock badged
+  dock="$(dock_badges)"
+  badged="$(cut -f1 <<< "$dock")"
   while IFS=$'\t' read -r bundle app label; do
     [ -n "$bundle" ] || continue
     bundles+=("$bundle") apps+=("$app") labels+=("$label") scripts+=("$0 open $bundle")
-    badged+="$bundle"$'\n'
     # A badge without a number, e.g. the dot of Slack for unread channels, counts as one
     digits="${label//[^0-9]/}"
     unread=$((unread + ${digits:+10#}${digits:-1}))
-  done <<< "$(app_badges)"
+  done <<< "$(app_badges "$dock")"
 
   local kinds=() names=() versions=() restart="" kind name installed new
   while read -r kind name installed new; do
@@ -475,7 +483,7 @@ watch() {
   trap 'pkill -P $$; exit 0' TERM INT HUP
   local badges last=start
   while :; do
-    badges="$(app_badges; cat "$CRASHES" 2>/dev/null)"
+    badges="$(dock_badges; cat "$CRASHES" 2>/dev/null)"
     if [ "$badges" != "$last" ]; then
       sketchybar --trigger notification_change
       last="$badges"

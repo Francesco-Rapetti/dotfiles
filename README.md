@@ -188,9 +188,10 @@ Dock: tre finestre di VS Code sono tre icone. Quello attivo è evidenziato insie
 quelli vuoti non compaiono; la finestra attiva ha un riquadro più scuro dietro la sua icona, e quella
 a tutto schermo con `alt-f` ha dopo l'icona le due frecce del fullscreen. Un clic sul numero apre il
 workspace, un clic su un'icona porta a quella finestra. Le app senza bundle id mostrano l'iniziale
-del nome. Le finestre delle app con notifiche da leggere, quelle contate dal pallino verde
-all'estrema destra (vedi sotto), hanno un pallino verde nell'angolo dell'icona, come i badge del
-Dock: compare e sparisce insieme al badge dell'app. Le icone si aggiornano quando una finestra si apre, si chiude o cambia workspace: per
+del nome. Le finestre delle app con notifiche da leggere, cioè con un badge sull'icona nel Dock,
+hanno un pallino verde nell'angolo dell'icona, come i badge del Dock: compare e sparisce insieme al
+badge dell'app. Vale per tutte le app, anche quelle che il pallino verde all'estrema destra non
+conta (vedi sotto). Le icone si aggiornano quando una finestra si apre, si chiude o cambia workspace: per
 questo `aerospace.toml` avvisa SketchyBar a ogni cambio di focus (`on-focus-changed`), con
 `alt-shift-1` … `alt-shift-9` e con `alt-f`, che non sposta il focus.
 
@@ -379,8 +380,9 @@ crash, poi le app, poi i pacchetti.
 Il pallino verde somma i badge che le app di `sketchybar/notification_apps.conf` hanno sulla loro
 icona nel Dock, per esempio i messaggi non letti di Slack: si aggiorna entro 2 secondi e sparisce
 quando li leggi nell'app. Un badge senza numero, come il punto di Slack per i canali non letti,
-conta uno. Nell'elenco ogni app ha la sua icona e il suo badge, e un clic la apre; nei workspace
-le sue finestre hanno un pallino verde sull'icona. Nel file c'è un'app per riga, con il suo bundle
+conta uno. Nell'elenco ogni app ha la sua icona e il suo badge, e un clic la apre. Nei workspace
+invece il pallino verde sull'icona ce l'hanno le finestre di tutte le app con un badge, anche
+quelle che non sono nel file. Nel file c'è un'app per riga, con il suo bundle
 id (`osascript -e 'id of app "Nome App"'`) o il nome che ha nel Dock; le modifiche valgono subito,
 senza ricaricare la barra. macOS non avvisa quando cambia un badge, quindi `sketchybarrc` avvia
 `plugins/notification.sh watch`, che li legge ogni 2 secondi e aggiorna la barra quando cambiano.

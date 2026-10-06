@@ -110,9 +110,10 @@ sketchybar --add item apple left \
 # space_windows_change: a window opened or closed. aerospace_windows_change: AeroSpace moved the
 # focus or a window, or put one in fullscreen (on-focus-changed and the alt-shift-<n>,
 # alt-shift-a/s/w/d and alt-f bindings in aerospace.toml).
-# The windows of the apps with notifications to read, those of the green badge (see Notifications
-# below), have a green dot on their icon: notification_badges_change, from notification.sh, says
-# that the apps with one changed
+# The windows of the apps with notifications to read, a badge on their icon in the Dock, have a
+# green dot on their icon, also those of the apps that the green badge doesn't count (see
+# Notifications below): notification_badges_change, from notification.sh, says that the apps with
+# one changed
 ORDER_HELPER="$CONFIG_DIR/helpers/window_order"
 if [ ! -x "$ORDER_HELPER" ] || [ "$ORDER_HELPER.swift" -nt "$ORDER_HELPER" ]; then
   swiftc -O "$ORDER_HELPER.swift" -o "$ORDER_HELPER"

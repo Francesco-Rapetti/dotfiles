@@ -1,8 +1,11 @@
 #!/bin/sh
 
-# helpers/dock_badges for notification.sh: in the Dock Slack has 3 unread messages, Mail 12 and
-# System Settings an update, which isn't in mock/notification_apps.conf
+# helpers/dock_badges for notification.sh: in the Dock Slack has 3 unread messages, Mail 12,
+# Calendar 2 invitations and System Settings an update. The last two aren't in
+# mock/notification_apps.conf: the green badge doesn't count them, but the window of Calendar in
+# workspace 3 has the dot of aerospace.sh as the one of Mail
 
 printf 'com.tinyspeck.slackmacgap\tSlack\t3\n'
 printf 'com.apple.mail\tMail\t12\n'
+printf 'com.apple.iCal\tCalendario\t2\n'
 printf 'com.apple.systempreferences\tImpostazioni di Sistema\t1\n'

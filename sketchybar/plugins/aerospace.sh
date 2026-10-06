@@ -10,7 +10,7 @@
 # AeroSpace lists the windows by app name: helpers/window_order puts those of each workspace in the
 # order they have on screen, and remembers it for the workspaces that aren't.
 # A window in fullscreen (alt-f) has the fullscreen symbol after its icon, and the windows of the
-# apps counted in the green badge of notification.sh a green dot on theirs.
+# apps with a badge in the Dock, which notification.sh reads, a green dot on theirs.
 # The item aerospace_mode runs it too: the binding mode, hidden in main. sketchybarrc runs it with
 # watch, which follows `aerospace subscribe mode-changed` and triggers aerospace_mode_change with
 # the mode: AeroSpace has no callback for the modes, and the bindings that leave service are many
@@ -75,8 +75,9 @@ window=(
 )
 # The icon of the windows with an app icon, empty, and of the others, the initial of the app
 letter=(icon.font="Helvetica Neue:Bold:13.0" icon.align=center icon.y_offset=0)
-# The app has notifications to read, those of the green badge of notification.sh: a green dot, the
-# icon of the window, on the top right corner of the app icon as the badges of the Dock
+# The app has notifications to read, a badge on its icon in the Dock, also when the green badge of
+# notification.sh doesn't count it: a green dot, the icon of the window, on the top right corner of
+# the app icon as the badges of the Dock
 dot=(icon=􀀁 icon.font="SF Pro:Heavy:7.0" icon.align=right icon.y_offset=6 icon.color=$GREEN)  # circle.fill
 # The bundle id of each app with a badge, one per line, which notification.sh saves
 BADGED=$'\n'"$(cat "${TMPDIR:-/tmp}/sketchybar_notification_badged" 2>/dev/null)"$'\n'
