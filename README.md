@@ -150,16 +150,17 @@ apre gli stessi popup. Gli altri monitor mostrano tutto, con i nomi interi.
 `plugins/notch.sh` riconosce i display con il notch e sposta gli elementi quando colleghi o
 scolleghi un monitor; quali elementi spariscono lo decide la sua lista `ITEMS`.
 A volte SketchyBar non si accorge che gli schermi sono cambiati mentre il Mac dormiva (per esempio
-quando lo risvegli chiuso, collegato a un monitor) e continua a disegnare la barra dove stavano
-quelli vecchi, cioè su nessuno schermo; `sketchybar --reload` non basta. Per questo `notch.sh`
-confronta ogni 2 secondi gli schermi di SketchyBar con quelli di macOS: per 20 secondi dopo il
-risveglio, perché gli schermi tornano uno alla volta, e ogni volta che cambia lo schermo attivo,
-finché non coincidono (quasi sempre già al primo controllo). Se restano diversi per 2 controlli di
-fila, mentre quelli di macOS non cambiano, chiude SketchyBar, che `start.sh` fa ripartire: pochi
-secondi dopo che gli schermi si sono assestati, spesso prima che tu abbia finito di scrivere la
-password. Scrive poi gli schermi dell'uno e dell'altro in `~/Library/Logs/sketchybar-crash.log`. Lo
-fa una volta sola per gli stessi schermi, così non riparte di continuo se un SketchyBar appena
-avviato li vede diversi anche lui.
+quando lo risvegli chiuso, collegato a uno o più monitor) e continua a disegnare la barra dove
+stavano quelli vecchi, cioè su nessuno schermo; `sketchybar --reload` non basta, e
+`sketchybar --query displays` non se ne accorge, perché elenca comunque gli schermi di macOS. Per
+questo `notch.sh` controlla ogni 2 secondi, dalle finestre di SketchyBar, che ogni schermo di macOS
+abbia la sua barra: per 20 secondi dopo il risveglio, perché gli schermi tornano uno alla volta, e
+ogni volta che cambia lo schermo attivo, finché non ce l'hanno tutti (quasi sempre già al primo
+controllo). Se uno resta senza barra per 2 controlli di fila, mentre gli schermi non cambiano,
+chiude SketchyBar, che `start.sh` fa ripartire: pochi secondi dopo che gli schermi si sono
+assestati, spesso prima che tu abbia finito di scrivere la password. Scrive poi gli schermi e le
+barre in `~/Library/Logs/sketchybar-crash.log`. Lo fa una volta sola per gli stessi schermi, così
+non riparte di continuo se anche un SketchyBar appena avviato ne lascia qualcuno senza barra.
 
 Se la barra è vuota o mancano i workspace:
 

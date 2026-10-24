@@ -15,65 +15,79 @@ DISPLAYS="${TMPDIR:-/tmp}/sketchybar_displays.json"
 RESTARTED="${TMPDIR:-/tmp}/sketchybar_displays_restarted"  # the displays of macOS at the last restart
 LOG="$HOME/Library/Logs/sketchybar-crash.log"  # the one of ../start.sh
 
-# known_displays: the DirectDisplayID and the frame (x y w h) of each display SketchyBar knows, one
-# per line
-known_displays() {
-  sketchybar --query displays | jq -r '.[] | [.DirectDisplayID, (.frame | .x, .y, .w, .h | round)] | join(" ")' \
-    | sort -n
-}
-
-# screens: the same for the displays of macOS, from NSScreen, whose frames start at the bottom left
-# of the main display rather than at the top left
+# screens <margin> <height>: as JSON, the displays of macOS, from NSScreen, and the bars of
+# SketchyBar: its windows as tall as the bar and wider than half the narrowest display, which the
+# items aren't. Each display has its DirectDisplayID, its frame (x y w h from the top left of the
+# main display, as in SketchyBar, while NSScreen starts at the bottom left) and whether a bar is on
+# it: as wide as the display less the margins, at any height in it, since a menu bar that doesn't
+# hide or y_offset moves it down. Off screen too, as on a display showing an app in full screen
 screens() {
-  osascript -l JavaScript - <<'EOF' | sort -n
+  osascript -l JavaScript - "$@" <<'EOF'
 ObjC.import('AppKit')
-function run() {
+ObjC.import('CoreGraphics')
+function run(argv) {
+  const [margin, height] = argv.map(Number)
   const screens = $.NSScreen.screens
-  const height = screens.objectAtIndex(0).frame.size.height
-  const lines = []
+  const main = screens.objectAtIndex(0).frame.size.height
+  const displays = []
   for (let i = 0; i < screens.count; i++) {
     const screen = screens.objectAtIndex(i), frame = screen.frame
-    lines.push([screen.deviceDescription.objectForKey('NSScreenNumber').js, frame.origin.x,
-      height - frame.origin.y - frame.size.height, frame.size.width, frame.size.height].map(Math.round).join(' '))
+    displays.push({id: screen.deviceDescription.objectForKey('NSScreenNumber').js, frame: [frame.origin.x,
+      main - frame.origin.y - frame.size.height, frame.size.width, frame.size.height].map(Math.round)})
   }
-  return lines.join('\n')
+  const narrowest = Math.min(...displays.map(display => display.frame[2]))
+  const bars = ObjC.deepUnwrap(ObjC.castRefToObject($.CGWindowListCopyWindowInfo($.kCGWindowListOptionAll, $.kCGNullWindowID)))
+    .map(window => window.kCGWindowOwnerName === 'sketchybar' && window.kCGWindowBounds)
+    .filter(bounds => bounds && bounds.Height === height && bounds.Width > narrowest / 2)
+    .map(bounds => [bounds.X, bounds.Y, bounds.Width, bounds.Height].map(Math.round))
+  for (const display of displays) {
+    const [x, y, w, h] = display.frame
+    display.bar = bars.some(([barX, barY, barW]) => barX === x + margin && barW === w - 2 * margin && barY >= y && barY < y + h)
+  }
+  return JSON.stringify({displays: displays.sort((a, b) => a.id - b.id), bars})
 }
 EOF
 }
 
-# watch <checks> [stop]: compares the displays of SketchyBar with those of macOS every INTERVAL
-# seconds, that many times at most, and succeeds as soon as they have differed for SETTLE checks in
-# a row while those of macOS stayed the same. With stop it fails as soon as they are the same.
-# SketchyBar answering nothing counts as the same. Sets SCREENS to the displays of macOS
+# watch <checks> [stop]: checks every INTERVAL seconds, that many times at most, that SketchyBar has
+# a bar on each display of macOS, and succeeds as soon as one has had none for SETTLE checks in a
+# row while the displays stayed the same. With stop it fails as soon as each has one. SketchyBar or
+# osascript answering nothing counts as each having one. Sets SCREENS to the last screens
 watch() {
-  local i known previous="" count=0
+  local i bar current previous="" count=0
   for ((i = 0; i < $1; i++)); do
     [ $i -gt 0 ] && sleep $INTERVAL
-    known="$(known_displays)"
-    SCREENS="$(screens)"
-    if [ -z "$known" ] || [ "$known" = "$SCREENS" ]; then
+    bar="$(sketchybar --query bar)"
+    [ -n "$bar" ] && SCREENS="$(screens $(jq -r '.margin, .height' <<< "$bar"))"
+    if [ -n "$bar" ] && jq -e 'any(.displays[]; .bar | not)' <<< "$SCREENS" > /dev/null 2>&1; then
+      current="$(jq -c '.displays | map(del(.bar))' <<< "$SCREENS")"
+      if [ "$current" = "$previous" ]; then
+        count=$((count + 1))
+      else
+        count=1
+      fi
+      previous="$current"
+    else
       [ "$2" = stop ] && return 1
       count=0
-    elif [ "$SCREENS" = "$previous" ]; then
-      count=$((count + 1))
-    else
-      count=1
     fi
     [ $count -ge $SETTLE ] && return 0
-    previous="$SCREENS"
   done
   return 1
 }
 
 # SketchyBar may miss the displays changing while the Mac sleeps, e.g. the MacBook's going away
 # when it wakes with the lid closed on a monitor: it keeps drawing the bar where the old displays
-# were, now on no screen, and --reload doesn't help. So its displays are compared with those of
-# macOS: for 20 seconds after a wake, since the displays come back one at a time, and whenever the
-# active display changes, until they are the same (most times at the first check). If they still
-# differ after SETTLE checks, SketchyBar is stopped, and ../start.sh starts it again: a few seconds
-# after the displays settle, often before the password is in. Only once for the same displays of
-# macOS, in case a SketchyBar just started sees them differently too. Each check is an osascript,
-# ~0.05 s of CPU: every 2 seconds rather than every second, to keep a wake light
+# were, now on no screen, and --reload doesn't help. --query displays doesn't tell: it lists the
+# displays of macOS even then, as after a wake with the lid closed on two monitors, which left a
+# single bar as wide as the second monitor at the top left of the first, off screen. So whether each
+# display of macOS has a bar is checked from the windows of SketchyBar: for 20 seconds after a wake,
+# since the displays come back one at a time, and whenever the active display changes, until each
+# has one (most times at the first check). If one still has none after SETTLE checks, SketchyBar is
+# stopped, and ../start.sh starts it again: a few seconds after the displays settle, often before
+# the password is in. Only once for the same displays of macOS, in case a SketchyBar just started
+# misses them too. Each check is an osascript, ~0.05 s of CPU: every 2 seconds rather than every
+# second, to keep a wake light
 INTERVAL=2
 WAKE_CHECKS=10
 CHANGE_CHECKS=5
@@ -85,16 +99,17 @@ if [ "$SENDER" = system_woke ] || [ "$SENDER" = display_change ]; then
     watch $CHANGE_CHECKS stop
   fi
   if [ $? -eq 0 ]; then
-    screens="$SCREENS"
+    screens="$(jq -c '.displays | map(del(.bar))' <<< "$SCREENS")"
     if [ "$screens" != "$(cat "$RESTARTED" 2>/dev/null)" ] && pgrep -qf 'sketchybar/start\.sh'; then
       echo "$screens" > "$RESTARTED"
       entry="$(
         echo "=== $(date '+%d/%m/%Y %H:%M:%S') ==="
-        echo "SketchyBar conosceva schermi diversi da quelli di macOS ed è ripartito (id x y larghezza altezza)."
-        echo "SketchyBar:"
-        known_displays | sed 's/^/  /'
-        echo "macOS:"
-        sed 's/^/  /' <<< "$screens"
+        echo "SketchyBar non aveva la barra su tutti gli schermi ed è ripartito (x y larghezza altezza)."
+        jq -r '"Schermi di macOS:",
+               (.displays[] | "  \(.frame | join(" ")) (id \(.id))\(if .bar then "" else ", senza barra" end)"),
+               "Barre di SketchyBar:",
+               (.bars[] | "  " + join(" ")),
+               (if .bars == [] then "  nessuna" else empty end)' <<< "$SCREENS"
       )"
       { printf '%s\n\n' "$entry"; cat "$LOG" 2>/dev/null; } > "$LOG.$$"
       mv "$LOG.$$" "$LOG"
