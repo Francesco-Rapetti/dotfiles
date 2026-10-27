@@ -16,6 +16,7 @@ dotfiles/
 │   ├── colors.sh              (la palette, condivisa da sketchybarrc e dai plugin)
 │   ├── notification_apps.conf (le app di cui contare le notifiche)
 │   ├── home_assistant.conf.example  (da copiare in home_assistant.conf, che non è nel repo)
+│   ├── claude_accounts.conf.example (da copiare in claude_accounts.conf, che non è nel repo)
 │   ├── plugins/*.sh
 │   └── helpers/*.swift, *.plist, *.js  (compilati o eseguiti da sketchybarrc)
 └── screenshots/               (le immagini di questo README, con dati inventati)
@@ -148,7 +149,9 @@ le icone, con la batteria dei dispositivi e la banda del Wi-Fi; del calendario s
 prossimo evento, colorato secondo quanto manca (vedi sotto), e dell'orologio solo l'ora. Un clic
 apre gli stessi popup. Gli altri monitor mostrano tutto, con i nomi interi.
 `plugins/notch.sh` riconosce i display con il notch e sposta gli elementi quando colleghi o
-scolleghi un monitor; quali elementi spariscono lo decide la sua lista `ITEMS`.
+scolleghi un monitor; quali elementi spariscono lo decide la sua lista `ITEMS`. Allo stesso modo,
+con più account Claude, mostra un elemento per account solo sugli schermi grandi e sugli altri uno
+solo per tutti (vedi l'uso di Claude).
 A volte SketchyBar non si accorge che gli schermi sono cambiati mentre il Mac dormiva (per esempio
 quando lo risvegli chiuso, collegato a uno o più monitor) e continua a disegnare la barra dove
 stavano quelli vecchi, cioè su nessuno schermo; `sketchybar --reload` non basta, e
@@ -434,7 +437,8 @@ l'email e il piano dell'account e, per ciascun limite, la percentuale, una barra
 reset (`Reset tra 2 h 57 min · 01:10`). In fondo c'è *Esci*, che vuole un secondo clic prima di
 scollegare l'account. Senza un account c'è solo *Accedi*: apre la pagina di accesso di Claude nel
 browser e, finito l'accesso, l'elemento si aggiorna; se non riesce compare una notifica, e un clic
-apre l'output di claude (`~/Library/Logs/sketchybar-claude.log`). I numeri sono quelli di `/usage`
+apre l'output di claude (`~/Library/Logs/sketchybar-claude.log`, `sketchybar-claude-2.log` per il
+secondo account e così via). I numeri sono quelli di `/usage`
 di Claude Code: `plugins/claude.sh` li chiede a `claude -p` senza mandare messaggi, quindi senza
 consumare crediti, ogni 5 minuti, al risveglio e a ogni clic (in alto a destra compare
 *Aggiornamento…* finché non arrivano), e Claude Code rinnova da solo il login scaduto. Claude Code
@@ -443,6 +447,25 @@ grigio fino alla successiva. Serve [Claude Code](https://code.claude.com/docs) (
 `PATH`: `~/.local/bin`, Homebrew, nvm) e `jq`, che macOS ha da Sequoia. L'icona è quella della
 barra dei menu dell'app Claude, che `helpers/claude_icon.js` colora in `helpers/claude_icon.png`
 (non è nel repo); senza l'app al suo posto c'è ✻.
+
+Con più account Claude, sugli schermi grandi, larghi almeno 3840 punti come un 49" 32:9, ognuno ha
+il suo elemento: quello arancione è l'account di `~/.claude`, gli altri, alla sua sinistra, hanno la
+stessa scintilla in un altro colore. Oltre ai numeri c'è l'ora del reset della sessione
+(`42% · 31% · 17:07`), e il popup di ciascuno è il suo, dove le barre hanno il colore dell'account e
+*Accedi* ed *Esci* valgono solo per lui. Gli account sono in `sketchybar/claude_accounts.conf`, che
+non è nel repo perché sono i tuoi: copia `sketchybar/claude_accounts.conf.example` e scrivi per
+ciascuno il colore (`RRGGBB`) e la cartella di config del suo Claude Code, quella con cui ci hai
+fatto l'accesso (`CLAUDE_CONFIG_DIR=~/.claude-lavoro claude`, poi `/login`). Senza il file c'è solo
+l'elemento arancione, su tutti gli schermi.
+
+![Tutti gli account di Claude](screenshots/claude_all.png)
+
+Sugli altri schermi, perché la barra non si allunghi, al loro posto c'è un elemento solo: l'account
+con la sessione più usata, con la sua scintilla e i suoi numeri, senza l'ora. Un clic apre tutti gli
+account, uno sotto l'altro, ciascuno con il nome nel suo colore, i limiti ed *Esci* (o *Accedi*).
+Quale elemento va su quale schermo lo decide `plugins/notch.sh` (`LARGE_WIDTH`), insieme a quelli
+che spariscono sul MacBook. I due elementi di uno stesso account, su schermi diversi, chiedono i
+numeri a Claude Code una volta sola: `claude.sh` li tiene per un minuto in `$TMPDIR`.
 
 ![Docker](screenshots/docker.png)
 
@@ -550,7 +573,8 @@ In `aerospace/aerospace.toml`:
   `osascript -e 'id of app "Nome App"'`.
 
 Per Home Assistant, `sketchybar/home_assistant.conf` e il token nel Portachiavi non sono nel repo:
-vanno rifatti su ogni Mac (vedi sopra, dopo CPU, GPU e memoria).
+vanno rifatti su ogni Mac (vedi sopra, dopo CPU, GPU e memoria). Lo stesso vale per
+`sketchybar/claude_accounts.conf`, se usi più account Claude (vedi sopra, dopo l'uso di Claude).
 
 ## Scorciatoie principali
 

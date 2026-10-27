@@ -16,8 +16,10 @@ REPO="$(dirname "$DIR")"
 MOCK="$DIR/mock"
 CAPTURE="$DIR/capture"
 
-SHOTS=(bar notch apple workspaces home system docker claude audio network battery calendar clock notification)
-# The items of the two sides of the bar, for the shot of the whole bar
+SHOTS=(bar notch apple workspaces home system docker claude claude_all audio network battery calendar clock
+       notification)
+# The items of the two sides of the bar, for the shot of the whole bar. The claude items of the other
+# accounts are between claude and docker, so in its rects (see claude_items below)
 LEFT=(apple spaces aerospace_mode front_app)
 RIGHT=(home_printer home system docker claude audio connection battery calendar clock notification_apps
        notification_brew notification)
@@ -49,7 +51,7 @@ WORK="$(mktemp -d)"
 CONFIG="$WORK/sketchybar"
 mkdir -p "$CONFIG/helpers" "$WORK/tmp"
 ln -s "$REPO/sketchybar/colors.sh" "$REPO/sketchybar/plugins" "$MOCK/home_assistant.conf" \
-      "$MOCK/notification_apps.conf" "$CONFIG/"
+      "$MOCK/notification_apps.conf" "$MOCK/claude_accounts.conf" "$CONFIG/"
 ln -s "$REPO/sketchybar/helpers/"* "$CONFIG/helpers/"
 ln -sf "$MOCK/helpers/"* "$CONFIG/helpers/"
 ln -s "$REPO/Brewfile" "$WORK/"
@@ -97,6 +99,40 @@ query() {
     sleep 0.2
   done
   return 1
+}
+
+# The claude items of the made-up accounts of mock/claude_accounts.conf in place of those of the
+# real ones, whatever they are, as sketchybarrc adds them: claude_all and claude_2, claude_3... after
+# claude, clones of it with the spark in the color of each account. --clone leaves out the popup, so
+# theirs is a copy of the one of claude. sketchybar --reload puts the real ones back
+claude_items() {
+  local popup tray=/Applications/Claude.app/Contents/Resources/TrayIconTemplate-Dark@3x.png
+  local color dir icon item previous=claude i CLAUDE_ACCOUNTS
+  popup=($(query claude | jq -r '.popup | "popup.align=\(.align)", "popup.height=\(.height)",
+    "popup.blur_radius=\(.blur_radius)", "popup.background.color=\(.background.color)",
+    "popup.background.border_color=\(.background.border_color)",
+    "popup.background.border_width=\(.background.border_width)",
+    "popup.background.corner_radius=\(.background.corner_radius)"'))
+  sketchybar --remove '/claude_[0-9]/' --remove '/claude_all/' 2> /dev/null
+  source "$MOCK/claude_accounts.conf"
+  CLAUDE_ITEMS=(claude)
+  CLAUDE_ALL=claude_all
+  sketchybar --clone claude_all claude after --set claude_all "${popup[@]}" \
+             --add item keep.claude_all popup.claude_all --set keep.claude_all drawing=off
+  for ((i = 0; i < ${#CLAUDE_ACCOUNTS[@]}; i++)); do
+    read -r color dir <<< "${CLAUDE_ACCOUNTS[i]}"
+    item="claude_$((i + 2))"
+    icon=(icon.color=0xff$color)
+    if [ -f "$tray" ]; then
+      osascript -l JavaScript "$REPO/sketchybar/helpers/claude_icon.js" "$tray" "$CONFIG/helpers/claude_icon_$color.png" "$color"
+      icon=(icon.background.image="$CONFIG/helpers/claude_icon_$color.png")
+    fi
+    sketchybar --clone "$item" "$previous" after \
+               --set "$item" "${popup[@]}" "${icon[@]}" padding_right=0 \
+               --add item "keep.$item" "popup.$item" --set "keep.$item" drawing=off
+    CLAUDE_ITEMS+=("$item")
+    previous=$item
+  done
 }
 
 # rects <item>...: the rect around the items on each display, as capture takes them; the hidden
@@ -174,6 +210,7 @@ WIFI=(
 mock_bar() {
   sketchybar --set '/.*/' updates=off
   settle '/plugins/[a-z_]*\.sh'
+  claude_items
   run notch notch forced
   # notification.sh first, in the background: it saves the apps with a badge, whose windows have
   # the dot of aerospace.sh
@@ -185,7 +222,9 @@ mock_bar() {
   run home home forced
   run system ram system_stats_change "${SYSTEM[@]}"
   run docker docker forced
-  run claude claude claude_update
+  for item in "${CLAUDE_ITEMS[@]}" $CLAUDE_ALL; do
+    run claude "$item" claude_update
+  done
   run audio audio_output forced
   run network network wifi_networks_change "${WIFI[@]}"
   run battery battery forced
@@ -231,7 +270,22 @@ shot_docker() {
   done
   snap docker docker docker
 }
-shot_claude() { snap claude claude claude; }
+# Every account, with the popup of the first
+shot_claude() { snap claude claude "${CLAUDE_ITEMS[@]}"; }
+# claude_all, with the popup of all the accounts, as on a display that isn't large: on every
+# display, in place of the claude items
+shot_claude_all() {
+  local item displays status
+  displays="$(query displays | jq -r 'map(."arrangement-id") | join(",")')"
+  for item in "${CLAUDE_ITEMS[@]}"; do
+    sketchybar --set "$item" display=30
+  done
+  sketchybar --set claude_all display="$displays"
+  snap claude_all claude_all claude_all
+  status=$?
+  run notch notch forced
+  return $status
+}
 shot_audio() { snap audio audio_output audio; }
 shot_network() {
   run network network mouse.clicked

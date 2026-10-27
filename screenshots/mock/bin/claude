@@ -1,18 +1,35 @@
 #!/bin/sh
 
-# Claude Code for claude.sh: an account on the Max plan, 42% of the 5-hour session used and 31% of
-# the week, which reset in 2 h 57 min and in 3 days 5 h from MOCK_NOW. The name of the account is in
-# the .claude.json of the made-up HOME
+# Claude Code for claude.sh, one account per config dir (CLAUDE_CONFIG_DIR, see
+# ../claude_accounts.conf): the one of HOME on the Max plan, 42% of the 5-hour session used and 31%
+# of the week, which reset in 2 h 57 min and in 3 days 5 h from MOCK_NOW; the work one on the Team
+# plan, at 78% and 46%; the personal one on the Pro plan, at 12% and 64%. The name of the accounts
+# is in the .claude.json of the made-up HOME and of their config dirs
 
 reset() {
   /bin/date -u -r $((MOCK_NOW + $1)) +%Y-%m-%dT%H:%M:%SZ
 }
 
+case "$CLAUDE_CONFIG_DIR" in
+  */.claude-work)
+    account='{"loggedIn":true,"email":"mario.rossi@azienda.example","orgName":"Azienda","subscriptionType":"team"}'
+    session=78 session_reset=$((1 * 3600 + 12 * 60)) week=46 week_reset=$((4 * 86400 + 2 * 3600))
+    ;;
+  */.claude-personal)
+    account='{"loggedIn":true,"email":"mario.rossi@example.org","orgName":"","subscriptionType":"pro"}'
+    session=12 session_reset=$((4 * 3600 + 20 * 60)) week=64 week_reset=$((1 * 86400 + 9 * 3600))
+    ;;
+  *)
+    account='{"loggedIn":true,"email":"mario.rossi@example.com","orgName":"","subscriptionType":"max"}'
+    session=42 session_reset=$((2 * 3600 + 57 * 60)) week=31 week_reset=$((3 * 86400 + 5 * 3600))
+    ;;
+esac
+
 case "$1:$2" in
-  auth:status) echo '{"loggedIn":true,"email":"mario.rossi@example.com","orgName":"","subscriptionType":"max"}' ;;
+  auth:status) echo "$account" ;;
   -p:*)
     cat > /dev/null
-    printf '{"type":"control_response","response":{"request_id":"usage","response":{"rate_limits":{"five_hour":{"utilization":42,"resets_at":"%s"},"seven_day":{"utilization":31,"resets_at":"%s"}}}}}\n' \
-      "$(reset $((2 * 3600 + 57 * 60)))" "$(reset $((3 * 86400 + 5 * 3600)))"
+    printf '{"type":"control_response","response":{"request_id":"usage","response":{"rate_limits":{"five_hour":{"utilization":%s,"resets_at":"%s"},"seven_day":{"utilization":%s,"resets_at":"%s"}}}}}\n' \
+      "$session" "$(reset $session_reset)" "$week" "$(reset $week_reset)"
     ;;
 esac

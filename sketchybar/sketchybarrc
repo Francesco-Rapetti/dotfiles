@@ -585,29 +585,39 @@ sketchybar --add item audio_input_battery right \
 # from 75% and in red from 90%. A click opens the account, a bar and the time to the reset for
 # each limit and the row that logs out, or the one that logs in. claude.sh asks Claude Code every
 # 5 minutes, on wake and when the popup opens; claude_update refreshes it, e.g. after a login.
+# One item per account: claude for the one of ~/.claude and, on its left, claude_2, claude_3... for
+# those of claude_accounts.conf, each with the config dir of its Claude Code and the color of its
+# icon. The accounts are the user's, so claude_accounts.conf isn't in the repo (see
+# claude_accounts.conf.example): without it there is only claude. With more than one, the item of
+# each is only on the large displays (see notch.sh below), and on the others, so that the bar
+# doesn't grow, there is claude_all in their place: the account with the busiest session, with its
+# icon, and in its popup all of them.
 # The icon is the spark of the Claude app's menu bar icon, which helpers/claude_icon.js tints
-# orange since SketchyBar can't color images; without the app it is the ✻ of Claude Code
+# since SketchyBar can't color images: orange for claude, into helpers/claude_icon.png, the color of
+# the account for the others, into helpers/claude_icon_<color>.png; without the app it is the ✻ of
+# Claude Code
 CLAUDE_TRAY_ICON=/Applications/Claude.app/Contents/Resources/TrayIconTemplate-Dark@3x.png
-CLAUDE_ICON="$CONFIG_DIR/helpers/claude_icon.png"
-if [ -f "$CLAUDE_TRAY_ICON" ] && { [ "$CLAUDE_TRAY_ICON" -nt "$CLAUDE_ICON" ] \
-   || [ "$CONFIG_DIR/helpers/claude_icon.js" -nt "$CLAUDE_ICON" ]; }; then
-  osascript -l JavaScript "$CONFIG_DIR/helpers/claude_icon.js" "$CLAUDE_TRAY_ICON" "$CLAUDE_ICON" D97757
-fi
-if [ -f "$CLAUDE_ICON" ]; then
-  # 72 px at 0.3: as tall as the SF Symbols of the other items. An image ignores the padding of the
-  # icon and starts at its left edge: image.padding_left leaves the room before the symbols
-  # (icon.padding_left plus their origin), in an icon as wide as that and the image
-  claude_icon=(icon="" icon.width=34 icon.background.drawing=on icon.background.image="$CLAUDE_ICON"
-               icon.background.image.scale=0.3 icon.background.image.padding_left=12)
-else
-  claude_icon=(icon="✻" icon.color=0xffd97757)
-fi
+# claude_icon <png> <RRGGBB>: sets claude_icon to the icon of a claude item in that color
+claude_icon() {
+  if [ -f "$CLAUDE_TRAY_ICON" ] && { [ "$CLAUDE_TRAY_ICON" -nt "$1" ] \
+     || [ "$CONFIG_DIR/helpers/claude_icon.js" -nt "$1" ]; }; then
+    osascript -l JavaScript "$CONFIG_DIR/helpers/claude_icon.js" "$CLAUDE_TRAY_ICON" "$1" "$2"
+  fi
+  if [ -f "$1" ]; then
+    # 72 px at 0.3: as tall as the SF Symbols of the other items. An image ignores the padding of the
+    # icon and starts at its left edge: image.padding_left leaves the room before the symbols
+    # (icon.padding_left plus their origin), in an icon as wide as that and the image
+    claude_icon=(icon="" icon.width=34 icon.background.drawing=on icon.background.image="$1"
+                 icon.background.image.scale=0.3 icon.background.image.padding_left=12)
+  else
+    claude_icon=(icon="✻" icon.color=0xff$2)
+  fi
+}
 # Between the audio bracket and the docker item, or the system bracket while Docker isn't
 # running: 8 on both sides. The label is empty until claude.sh has the numbers, but always drawn:
 # its padding is the room after the icon
 claude=(
   "${icon_pill[@]}"
-  "${claude_icon[@]}"
   padding_left=8
   padding_right=8
   update_freq=300
@@ -617,10 +627,30 @@ claude=(
   # No minimum: claude.sh gives each row of the popup its own height
   popup.height=0
 )
+claude_icon "$CONFIG_DIR/helpers/claude_icon.png" D97757
 sketchybar --add event claude_update \
            --add item claude right \
-           --set claude "${claude[@]}" \
+           --set claude "${claude[@]}" "${claude_icon[@]}" \
            --subscribe claude claude_update system_woke mouse.clicked mouse.exited.global
+# claude_all where claude is, never on the same display, with its icon until claude.sh picks one.
+# The others: padding_right=0, the 8 of the item on their right is the gap
+CLAUDE_ITEMS=(claude)
+[ -f "$CONFIG_DIR/claude_accounts.conf" ] && source "$CONFIG_DIR/claude_accounts.conf"
+if [ ${#CLAUDE_ACCOUNTS[@]} -gt 0 ]; then
+  sketchybar --add item claude_all right \
+             --set claude_all "${claude[@]}" "${claude_icon[@]}" \
+             --subscribe claude_all claude_update system_woke mouse.clicked mouse.exited.global
+  CLAUDE_ITEMS+=(claude_all)
+  for ((i = 0; i < ${#CLAUDE_ACCOUNTS[@]}; i++)); do
+    read -r color _ <<< "${CLAUDE_ACCOUNTS[i]}"
+    item="claude_$((i + 2))"
+    claude_icon "$CONFIG_DIR/helpers/claude_icon_$color.png" "$color"
+    sketchybar --add item "$item" right \
+               --set "$item" "${claude[@]}" "${claude_icon[@]}" padding_right=0 \
+               --subscribe "$item" claude_update system_woke mouse.clicked mouse.exited.global
+    CLAUDE_ITEMS+=("$item")
+  done
+fi
 
 # Docker: the whale with how many containers are running, in red when one is unhealthy or
 # restarting, only while Docker answers. A click opens the engine and the running containers, each
@@ -637,7 +667,8 @@ if [ "$DOCKER_ICONS.js" -nt "$DOCKER_ICONS/circle.fill_green.png" ] \
   osascript -l JavaScript "$DOCKER_ICONS.js" "$DOCKER_ICONS" "$DOCKER_APP" 2496ED \
             text=${TEXT#0xff} green=${GREEN#0xff} yellow=${YELLOW#0xff} red=${RED#0xff}
 fi
-# Between the claude item and the system bracket: 8 to the bracket, and the 8 of claude on its right
+# Between the claude items and the system bracket: 8 to the bracket, and the 8 of the last claude
+# item on its right
 docker=(
   "${icon_pill[@]}"
   drawing=off
@@ -774,7 +805,7 @@ sketchybar --add item notch left \
 # destroying it. That is what the plugins do to set rows that changed, removing and adding them
 # again, e.g. audio.sh when a Bluetooth device disconnects. With this row the popup never goes
 # empty, so its window stays. The plugins leave it out when they read their rows
-for item in apple notification calendar battery connection audio_output claude docker system home; do
+for item in apple notification calendar battery connection audio_output "${CLAUDE_ITEMS[@]}" docker system home; do
   sketchybar --add item "keep.$item" "popup.$item" --set "keep.$item" drawing=off
 done
 

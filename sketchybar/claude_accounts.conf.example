@@ -1,0 +1,8 @@
+# The Claude accounts besides the one of ~/.claude, each with an item of its own in the bar, on the
+# left of the claude item (see sketchybarrc): copy this file to claude_accounts.conf.
+# For each account, the color of its icon and of its bars (RRGGBB) and the config dir of its
+# Claude Code, the CLAUDE_CONFIG_DIR where `CLAUDE_CONFIG_DIR=<dir> claude` logged in to it
+CLAUDE_ACCOUNTS=(
+  "89B4FA $HOME/.claude-work"
+  "A6E3A1 $HOME/.claude-personal"
+)

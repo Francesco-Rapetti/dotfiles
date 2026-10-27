@@ -8,6 +8,7 @@ sketchybar/helpers/calendar_events.app/
 sketchybar/helpers/calendar_month
 sketchybar/helpers/dock_badges
 sketchybar/helpers/claude_icon.png
+sketchybar/helpers/claude_icon_*.png
 sketchybar/helpers/galaxy_buds_icon.png
 sketchybar/helpers/galaxy_buds_photo.png
 sketchybar/helpers/meet_icon.png
@@ -19,6 +20,7 @@ sketchybar/helpers/network_icons/
 sketchybar/helpers/home_assistant
 sketchybar/helpers/home_assistant_icons/
 sketchybar/home_assistant.conf
+sketchybar/claude_accounts.conf
 sketchybar/helpers/home_assistant_logo.svg
 screenshots/capture
 sketchybar/helpers/docker_icons/

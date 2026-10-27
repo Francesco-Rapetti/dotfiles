@@ -1,16 +1,22 @@
 #!/usr/bin/env bash
 
 # Shows some items only on the displays without a notch: on a MacBook's, the items on the right
-# would end up under it (see sketchybarrc). The display property of SketchyBar takes the
-# arrangement ids of `sketchybar --query displays`, which change as displays come and go.
-# display_change fires then but also whenever another display becomes the active one, so the items
-# change only when the displays do, or at startup. NSScreen tells which displays have a notch: the
-# top of their safe area, which macOS keeps free of windows
+# would end up under it (see sketchybarrc); and some only on the large displays. The display
+# property of SketchyBar takes the arrangement ids of `sketchybar --query displays`, which change as
+# displays come and go. display_change fires then but also whenever another display becomes the
+# active one, so the items change only when the displays do, or at startup. NSScreen tells which
+# displays have a notch, the top of their safe area, which macOS keeps free of windows, and how wide
+# each one is
 
 # CPU and GPU, so that the memory stays alone, the names of the audio devices, of the Wi-Fi and of
 # the VPN, so that their icons stay, the title of the event, so that its time stays, and the date,
 # so that the hour stays
 ITEMS=(cpu gpu audio_output_name audio_input_name network_name network_vpn_name calendar_title clock_date)
+# With more than one Claude account (see sketchybarrc), the item of each, claude, claude_2,
+# claude_3..., is only on the large displays, at least this wide in points, e.g. a 49" 32:9 one
+# (5120); on the others, where they would make the bar too long, there is claude_all in their place
+CLAUDE_ITEMS='^claude(_[0-9]+)?$'
+LARGE_WIDTH=3840
 DISPLAYS="${TMPDIR:-/tmp}/sketchybar_displays.json"
 RESTARTED="${TMPDIR:-/tmp}/sketchybar_displays_restarted"  # the displays of macOS at the last restart
 LOG="$HOME/Library/Logs/sketchybar-crash.log"  # the one of ../start.sh
@@ -121,13 +127,17 @@ if [ "$SENDER" = system_woke ] || [ "$SENDER" = display_change ]; then
   fi
 fi
 
-# --query answers nothing while SketchyBar is busy, e.g. at startup
-for ((i = 0; i < 25; i++)); do
-  displays="$(sketchybar --query displays)"
-  [ -n "$displays" ] && break
-  sleep 0.2
-done
-[ -n "$displays" ] || exit 1
+# query <displays|bar>: --query answers nothing while SketchyBar is busy, e.g. at startup
+query() {
+  local answer i
+  for ((i = 0; i < 25; i++)); do
+    answer="$(sketchybar --query "$1")"
+    [ -n "$answer" ] && echo "$answer" && return
+    sleep 0.2
+  done
+  return 1
+}
+displays="$(query displays)" || exit 1
 [ "$SENDER" != forced ] && [ "$displays" = "$(cat "$DISPLAYS" 2>/dev/null)" ] && exit 0
 echo "$displays" > "$DISPLAYS"
 
@@ -146,15 +156,46 @@ function run() {
 EOF
 )"
 
-# The others by arrangement, e.g. 2 or 1,3. Without any, a display that isn't there, as SketchyBar
-# does for the spaces of no display
-wide="$(jq -r --arg notched "$notched" '
-  ($notched | split(",") | map(tonumber)) as $ids
-  | [.[] | select(.DirectDisplayID | IN($ids[]) | not) | ."arrangement-id"]
-  | if length > 0 then join(",") else 30 end' <<< "$displays")"
+# arrangement <DirectDisplayIDs> <true|false>: the arrangement ids of those displays, or with false
+# of the others, e.g. 2 or 1,3. Without any, a display that isn't there, as SketchyBar does for the
+# spaces of no display
+arrangement() {
+  jq -r --arg ids "$1" --argjson among "$2" '
+    ($ids | split(",") | map(tonumber)) as $ids
+    | [.[] | select((.DirectDisplayID | IN($ids[])) == $among) | ."arrangement-id"]
+    | if length > 0 then join(",") else 30 end' <<< "$displays"
+}
+
+# The displays without a notch
+wide="$(arrangement "$notched" false)"
+
+# The DirectDisplayID of the large displays, e.g. 2
+large="$(osascript -l JavaScript - $LARGE_WIDTH <<'EOF'
+ObjC.import('AppKit')
+function run([minWidth]) {
+  const screens = $.NSScreen.screens
+  const ids = []
+  for (let i = 0; i < screens.count; i++) {
+    const screen = screens.objectAtIndex(i)
+    if (screen.frame.size.width >= Number(minWidth)) ids.push(screen.deviceDescription.objectForKey('NSScreenNumber').js)
+  }
+  return ids.join(',')
+}
+EOF
+)"
+small="$(arrangement "$large" false)"
+large="$(arrangement "$large" true)"
 
 items=()
 for item in "${ITEMS[@]}"; do
   items+=(--set "$item" display="$wide")
 done
+# Only with claude_all, which is there with more than one account
+bar="$(query bar)"
+if jq -e '.items | index("claude_all")' <<< "$bar" > /dev/null; then
+  for item in $(jq -r --arg pattern "$CLAUDE_ITEMS" '.items[] | select(test($pattern))' <<< "$bar"); do
+    items+=(--set "$item" display="$large")
+  done
+  items+=(--set claude_all display="$small")
+fi
 sketchybar "${items[@]}"
