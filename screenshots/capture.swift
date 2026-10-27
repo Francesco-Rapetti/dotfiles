@@ -9,7 +9,9 @@
 //                       others are left out, and the first one grows to take in the popup. In the
 //                       pixels of the display: 2 per point on a Retina one
 // SketchyBar draws each item, bracket and popup row in a window of its own: only those in the rects
-// and those of the popup are captured, not the items next to them that a wide popup would take in
+// and those of the popup are captured, not the items next to them that a wide popup would take in.
+// The filter is SketchyBar without its other windows: on macOS 26 one with only some windows of an
+// app takes in all the windows of that app on the display
 // ScreenCaptureKit needs the Screen Recording permission of the app that runs this, e.g. Terminal
 // take.sh compiles it with: swiftc -O capture.swift -o capture
 
@@ -68,7 +70,10 @@ if popup {
   }
 }
 
-let filter = SCContentFilter(display: display, including: included)
+let ids = Set(included.map(\.windowID))
+let filter = SCContentFilter(display: display,
+                             including: content.applications.filter { $0.applicationName == "sketchybar" },
+                             exceptingWindows: windows.filter { !ids.contains($0.windowID) })
 let scale = CGFloat(filter.pointPixelScale)
 var images: [CGImage] = []
 for rect in rects {
