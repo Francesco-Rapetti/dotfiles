@@ -793,10 +793,19 @@ pkill -x home_assistant
 # the clock with only the hour. SketchyBar numbers the displays by their arrangement, which changes
 # as displays come and go: display_change fires then, and whenever another display becomes the
 # active one. Then and after a wake notch.sh also restarts SketchyBar if it missed the displays
-# changing, which leaves the bar on no screen
-sketchybar --add item notch left \
+# changing, which leaves the bar on no screen or on part of one. A SketchyBar that misses them
+# doesn't trigger display_change either: a Swift helper (rebuilt when its source changes), another
+# process, triggers macos_display_change whenever macOS changes them
+DISPLAY_HELPER="$CONFIG_DIR/helpers/display_changes"
+if [ ! -x "$DISPLAY_HELPER" ] || [ "$DISPLAY_HELPER.swift" -nt "$DISPLAY_HELPER" ]; then
+  swiftc -O "$DISPLAY_HELPER.swift" -o "$DISPLAY_HELPER"
+fi
+sketchybar --add event macos_display_change \
+           --add item notch left \
            --set notch drawing=off script="$PLUGIN_DIR/notch.sh" \
-           --subscribe notch display_change system_woke
+           --subscribe notch display_change macos_display_change system_woke
+pkill -x display_changes
+"$DISPLAY_HELPER" watch > /dev/null 2>&1 &
 
 ##### Popups #####
 # Each popup has a hidden row of its own, keep.<item>, that no plugin removes. SketchyBar 2.24

@@ -82,14 +82,17 @@ watch() {
   return 1
 }
 
-# SketchyBar may miss the displays changing while the Mac sleeps, e.g. the MacBook's going away
-# when it wakes with the lid closed on a monitor: it keeps drawing the bar where the old displays
-# were, now on no screen, and --reload doesn't help. --query displays doesn't tell: it lists the
-# displays of macOS even then, as after a wake with the lid closed on two monitors, which left a
-# single bar as wide as the second monitor at the top left of the first, off screen. So whether each
-# display of macOS has a bar is checked from the windows of SketchyBar: for 20 seconds after a wake,
-# since the displays come back one at a time, and whenever the active display changes, until each
-# has one (most times at the first check). If one still has none after SETTLE checks, SketchyBar is
+# SketchyBar may miss the displays changing: while the Mac sleeps, e.g. the MacBook's going away
+# when it wakes with the lid closed on a monitor, but also awake, e.g. a monitor that goes off and
+# comes back a few seconds later. It keeps drawing the bar where the old displays were, on no screen
+# or on part of one, and --reload doesn't help. --query displays doesn't tell: after a wake with the
+# lid closed on two monitors, which left a single bar as wide as the second monitor at the top left
+# of the first, off screen, it listed the displays of macOS all the same. So whether each display of
+# macOS has a bar is checked from the windows of SketchyBar: for 20 seconds after a wake and after
+# macOS changes the displays, since they come back one at a time, and whenever the active display
+# changes, until each has one (most times at the first check). The change comes from
+# helpers/display_changes (macos_display_change), another process, since SketchyBar that misses it
+# doesn't trigger display_change either. If one still has none after SETTLE checks, SketchyBar is
 # stopped, and ../start.sh starts it again: a few seconds after the displays settle, often before
 # the password is in. Only once for the same displays of macOS, in case a SketchyBar just started
 # misses them too. Each check is an osascript, ~0.05 s of CPU: every 2 seconds rather than every
@@ -98,15 +101,17 @@ INTERVAL=2
 WAKE_CHECKS=10
 CHANGE_CHECKS=5
 SETTLE=2
-if [ "$SENDER" = system_woke ] || [ "$SENDER" = display_change ]; then
-  if [ "$SENDER" = system_woke ]; then
-    watch $WAKE_CHECKS
-  else
+if [ "$SENDER" = system_woke ] || [ "$SENDER" = macos_display_change ] || [ "$SENDER" = display_change ]; then
+  if [ "$SENDER" = display_change ]; then
     watch $CHANGE_CHECKS stop
+  else
+    watch $WAKE_CHECKS
   fi
   if [ $? -eq 0 ]; then
     screens="$(jq -c '.displays | map(del(.bar))' <<< "$SCREENS")"
-    if [ "$screens" != "$(cat "$RESTARTED" 2>/dev/null)" ] && pgrep -qf 'sketchybar/start\.sh'; then
+    # -a: start.sh and sketchybar are ancestors of this script, and without it pgrep and pkill
+    # leave out their ancestors
+    if [ "$screens" != "$(cat "$RESTARTED" 2>/dev/null)" ] && pgrep -aqf 'sketchybar/start\.sh'; then
       echo "$screens" > "$RESTARTED"
       entry="$(
         echo "=== $(date '+%d/%m/%Y %H:%M:%S') ==="
@@ -119,7 +124,7 @@ if [ "$SENDER" = system_woke ] || [ "$SENDER" = display_change ]; then
       )"
       { printf '%s\n\n' "$entry"; cat "$LOG" 2>/dev/null; } > "$LOG.$$"
       mv "$LOG.$$" "$LOG"
-      pkill -x sketchybar
+      pkill -ax sketchybar
       exit 0
     fi
   else

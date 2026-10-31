@@ -152,18 +152,22 @@ apre gli stessi popup. Gli altri monitor mostrano tutto, con i nomi interi.
 scolleghi un monitor; quali elementi spariscono lo decide la sua lista `ITEMS`. Allo stesso modo,
 con più account Claude, mostra un elemento per account solo sugli schermi grandi e sugli altri uno
 solo per tutti (vedi l'uso di Claude).
-A volte SketchyBar non si accorge che gli schermi sono cambiati mentre il Mac dormiva (per esempio
-quando lo risvegli chiuso, collegato a uno o più monitor) e continua a disegnare la barra dove
-stavano quelli vecchi, cioè su nessuno schermo; `sketchybar --reload` non basta, e
-`sketchybar --query displays` non se ne accorge, perché elenca comunque gli schermi di macOS. Per
-questo `notch.sh` controlla ogni 2 secondi, dalle finestre di SketchyBar, che ogni schermo di macOS
-abbia la sua barra: per 20 secondi dopo il risveglio, perché gli schermi tornano uno alla volta, e
-ogni volta che cambia lo schermo attivo, finché non ce l'hanno tutti (quasi sempre già al primo
-controllo). Se uno resta senza barra per 2 controlli di fila, mentre gli schermi non cambiano,
-chiude SketchyBar, che `start.sh` fa ripartire: pochi secondi dopo che gli schermi si sono
-assestati, spesso prima che tu abbia finito di scrivere la password. Scrive poi gli schermi e le
-barre in `~/Library/Logs/sketchybar-crash.log`. Lo fa una volta sola per gli stessi schermi, così
-non riparte di continuo se anche un SketchyBar appena avviato ne lascia qualcuno senza barra.
+A volte SketchyBar non si accorge che gli schermi sono cambiati: mentre il Mac dormiva (per esempio
+quando lo risvegli chiuso, collegato a uno o più monitor), ma anche da sveglio, per esempio quando
+un monitor si spegne e si riaccende dopo pochi secondi. Continua allora a disegnare la barra dove
+stavano gli schermi vecchi, cioè su nessuno schermo o su un pezzo di uno; `sketchybar --reload` non
+basta, e `sketchybar --query displays` non è affidabile per accorgersene. Per questo `notch.sh`
+controlla ogni 2 secondi, dalle finestre di SketchyBar, che ogni schermo di macOS abbia la sua
+barra: per 20 secondi dopo il risveglio e dopo che macOS ha cambiato gli schermi, perché tornano
+uno alla volta, e ogni volta che cambia lo schermo attivo, finché non ce l'hanno tutti (quasi
+sempre già al primo controllo). Il cambio degli schermi glielo segnala `helpers/display_changes`
+(l'evento `macos_display_change`), un processo a parte, perché un SketchyBar che non se ne accorge
+non lancia nemmeno il suo `display_change`. Se uno resta senza barra per 2 controlli di fila,
+mentre gli schermi non cambiano, chiude SketchyBar, che `start.sh` fa ripartire: pochi secondi dopo
+che gli schermi si sono assestati, spesso prima che tu abbia finito di scrivere la password. Scrive
+poi gli schermi e le barre in `~/Library/Logs/sketchybar-crash.log`. Lo fa una volta sola per gli
+stessi schermi, così non riparte di continuo se anche un SketchyBar appena avviato ne lascia
+qualcuno senza barra.
 
 Se la barra è vuota o mancano i workspace:
 

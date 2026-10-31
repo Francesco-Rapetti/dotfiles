@@ -7,6 +7,7 @@ sketchybar/helpers/bluetooth_devices.app/
 sketchybar/helpers/calendar_events.app/
 sketchybar/helpers/calendar_month
 sketchybar/helpers/dock_badges
+sketchybar/helpers/display_changes
 sketchybar/helpers/claude_icon.png
 sketchybar/helpers/claude_icon_*.png
 sketchybar/helpers/galaxy_buds_icon.png
