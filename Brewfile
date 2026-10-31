@@ -9,4 +9,5 @@ brew "terminal-notifier"
 
 cask "nikitabobko/tap/aerospace"
 cask "font-sf-pro"
+cask "middleclick"
 cask "mediosz/tap/swipeaerospace"

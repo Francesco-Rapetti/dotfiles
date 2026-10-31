@@ -2,10 +2,11 @@
 
 Configurazione di [AeroSpace](https://github.com/nikitabobko/AeroSpace) (tiling window manager) e
 [RustyBar](https://github.com/Francesco-Rapetti/rustybar) (barra di stato), con i bordi delle
-finestre disegnati da [JankyBorders](https://github.com/FelixKratz/JankyBorders) e i workspace
-cambiati con lo swipe sul trackpad da [SwipeAeroSpace](https://github.com/MediosZ/SwipeAeroSpace). La barra di prima,
-[SketchyBar](https://github.com/FelixKratz/SketchyBar), resta in `sketchybar/` di riserva ma non
-parte più (vedi [SketchyBar, la barra di prima](#sketchybar-la-barra-di-prima)).
+finestre disegnati da [JankyBorders](https://github.com/FelixKratz/JankyBorders), i workspace
+cambiati con lo swipe sul trackpad da [SwipeAeroSpace](https://github.com/MediosZ/SwipeAeroSpace) e
+il clic centrale con tre dita da [MiddleClick](https://github.com/artginzburg/MiddleClick). La barra
+di prima, [SketchyBar](https://github.com/FelixKratz/SketchyBar), resta in `sketchybar/` di riserva
+ma non parte più (vedi [SketchyBar, la barra di prima](#sketchybar-la-barra-di-prima)).
 
 ![La barra](https://raw.githubusercontent.com/Francesco-Rapetti/rustybar/main/docs/screenshots/bar.png)
 
@@ -51,6 +52,7 @@ Alla fine segui le istruzioni che stampa per aggiungere `brew` al `PATH` (su App
 ```bash
 brew install --cask nikitabobko/tap/aerospace
 brew install --cask mediosz/tap/swipeaerospace
+brew install --cask middleclick
 brew tap FelixKratz/formulae
 brew install borders terminal-notifier rustup
 brew install --cask font-sf-pro
@@ -123,6 +125,7 @@ Queste sono le impostazioni che uso insieme ad AeroSpace e RustyBar:
 | Scrivania e Dock → trascina le finestre sul bordo per affiancarle | Off | Il tiling nativo si scontra con AeroSpace |
 | Trackpad → Altri gesti → scorri tra le app a tutto schermo | Quattro dita | Le tre dita in orizzontale sono di SwipeAeroSpace |
 | Trackpad → Altri gesti → Mission Control e Exposé app | Quattro dita | Lo swipe in su a tre dita apre la panoramica di SwipeAeroSpace |
+| Accessibilità → Controllo puntatore → Opzioni trackpad → stile di trascinamento | Non a tre dita | Con MiddleClick ogni clic centrale farebbe anche un clic sinistro |
 
 Da terminale:
 
@@ -137,6 +140,7 @@ for domain in com.apple.AppleMultitouchTrackpad com.apple.driver.AppleBluetoothM
   defaults write $domain TrackpadThreeFingerVertSwipeGesture -int 0
   defaults write $domain TrackpadFourFingerHorizSwipeGesture -int 2
   defaults write $domain TrackpadFourFingerVertSwipeGesture -int 2
+  defaults write $domain TrackpadThreeFingerDrag -bool false
 done
 defaults -currentHost write NSGlobalDomain com.apple.trackpad.threeFingerHorizSwipeGesture -int 0
 defaults -currentHost write NSGlobalDomain com.apple.trackpad.threeFingerVertSwipeGesture -int 0
@@ -205,7 +209,25 @@ open -a SwipeAeroSpace
 - I gesti di macOS a tre dita vanno spostati su quattro, altrimenti partono insieme a quelli di
   SwipeAeroSpace (vedi *Impostazioni di macOS*).
 
-### 9. Verifica
+### 9. Avvia MiddleClick
+
+```bash
+defaults write art.ginzburg.MiddleClick tapToClick -bool false
+open -a MiddleClick
+```
+
+- Concedi il permesso di **Accessibilità** (Impostazioni di Sistema → Privacy e sicurezza →
+  Accessibilità → MiddleClick): senza non riceve i clic del trackpad.
+- Dalla sua icona nella barra dei menu di macOS attiva **Launch at login**.
+- Il clic centrale è un clic vero, premendo con tre dita: con `tapToClick` spento il tap non conta,
+  altrimenti seguirebbe il "tocco per fare clic" di macOS. Se lo accendi, in Trackpad → Cerca e
+  rilevatori di dati non deve esserci il tocco con tre dita, che partirebbe insieme. Le dita si
+  cambiano con `defaults write art.ginzburg.MiddleClick fingers -int 4` (sono tre se non c'è).
+- Il trascinamento a tre dita va lasciato spento (vedi *Impostazioni di macOS*). Con gli swipe di
+  SwipeAeroSpace non si scontra: lì le dita si muovono ma non premono.
+- L'autore ha chiuso il progetto: MiddleClick non avrà altri aggiornamenti, ma resta su Homebrew.
+
+### 10. Verifica
 
 ```bash
 aerospace config --config-path
@@ -707,6 +729,12 @@ Lo swipe con `shift` sposta la finestra senza il `rustybar msg trigger aerospace
 binding: se il workspace resta senza finestre, le icone della barra si aggiornano solo al prossimo
 cambio di focus o di workspace.
 
+Con MiddleClick:
+
+| Gesto | Azione |
+| --- | --- |
+| Clic a tre dita | Clic centrale (nei browser apre il link in una nuova scheda) |
+
 ## Modificare la config
 
 Modifica i file in `~/Developer/dotfiles` (o tramite i symlink in `~/.config`), poi ricarica:
@@ -717,7 +745,8 @@ aerospace reload-config
 
 RustyBar e SwipeAeroSpace si ricaricano da sole quando salvi la loro config. Se
 `swipeaerospace/config.toml` ha un errore, SwipeAeroSpace lo ignora tutto, usa le impostazioni
-salvate e mostra l'errore in Settings.
+salvate e mostra l'errore in Settings. MiddleClick invece legge i suoi `defaults` solo all'avvio:
+dopo un `defaults write art.ginzburg.MiddleClick` chiudila dalla sua icona e riaprila.
 
 Infine `git commit` e `git push` come in qualsiasi repo.
 
