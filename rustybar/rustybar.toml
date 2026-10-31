@@ -1,0 +1,16 @@
+# RustyBar: https://github.com/Francesco-Rapetti/rustybar
+# Only what differs from its defaults (see `rustybar.toml` in its repo for every key). The server of
+# Home Assistant, the devices of the house and the Claude accounts are in rustybar.local.toml, which
+# isn't in the repo: copy rustybar.local.toml.example. RustyBar reloads when either changes.
+
+# As SketchyBar had them: the house, the machine and the accounts first, then sound, network,
+# battery, the next event, the clock and the notifications at the right edge
+[layout]
+left = ["apple", "aerospace", "front_app"]
+right = ["home", "system", "docker", "claude", "audio", "network", "battery", "events", "clock", "notifications"]
+
+[widgets.notifications]
+# The Dock badges to count: Slack and Microsoft Teams
+apps = ["com.tinyspeck.slackmacgap", "com.microsoft.teams2"]
+# The Homebrew packages of these dotfiles, checked for updates every hour
+brewfile = "~/Developer/dotfiles/Brewfile"

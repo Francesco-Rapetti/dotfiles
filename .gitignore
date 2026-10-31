@@ -25,3 +25,6 @@ sketchybar/claude_accounts.conf
 sketchybar/helpers/home_assistant_logo.svg
 screenshots/capture
 sketchybar/helpers/docker_icons/
+
+# RustyBar: the server of Home Assistant, the devices of the house and the Claude accounts
+rustybar/rustybar.local.toml

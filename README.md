@@ -1,16 +1,21 @@
 # dotfiles
 
 Configurazione di [AeroSpace](https://github.com/nikitabobko/AeroSpace) (tiling window manager) e
-[SketchyBar](https://github.com/FelixKratz/SketchyBar) (barra di stato), con i bordi delle finestre
-disegnati da [JankyBorders](https://github.com/FelixKratz/JankyBorders).
+[RustyBar](https://github.com/Francesco-Rapetti/rustybar) (barra di stato), con i bordi delle
+finestre disegnati da [JankyBorders](https://github.com/FelixKratz/JankyBorders). La barra di prima,
+[SketchyBar](https://github.com/FelixKratz/SketchyBar), resta in `sketchybar/` di riserva ma non
+parte più (vedi [SketchyBar, la barra di prima](#sketchybar-la-barra-di-prima)).
 
-![La barra](screenshots/bar.png)
+![La barra](https://raw.githubusercontent.com/Francesco-Rapetti/rustybar/main/docs/screenshots/bar.png)
 
 ```
 dotfiles/
 ├── Brewfile                   (i pacchetti Homebrew)
 ├── aerospace/aerospace.toml   → ~/.config/aerospace
-├── sketchybar/                → ~/.config/sketchybar
+├── rustybar/                  → ~/.config/rustybar
+│   ├── rustybar.toml          (i widget della barra e le loro opzioni)
+│   └── rustybar.local.toml.example  (da copiare in rustybar.local.toml, che non è nel repo)
+├── sketchybar/                → ~/.config/sketchybar (la barra di prima, di riserva)
 │   ├── sketchybarrc
 │   ├── start.sh               (avvia SketchyBar e lo riavvia quando si chiude)
 │   ├── colors.sh              (la palette, condivisa da sketchybarrc e dai plugin)
@@ -44,7 +49,7 @@ Alla fine segui le istruzioni che stampa per aggiungere `brew` al `PATH` (su App
 ```bash
 brew install --cask nikitabobko/tap/aerospace
 brew tap FelixKratz/formulae
-brew install sketchybar borders terminal-notifier
+brew install borders terminal-notifier rustup
 brew install --cask font-sf-pro
 ```
 
@@ -53,8 +58,25 @@ I testi della barra usano Helvetica Neue, già presente su macOS. Le icone di re
 installer `.pkg`, quindi chiede la password di amministratore. Senza SF Pro le icone appaiono come
 riquadri vuoti.
 
-Gli stessi pacchetti sono elencati nel `Brewfile`: SketchyBar mostra gli aggiornamenti solo di
-quelli, quindi se ne aggiungi uno aggiungilo anche lì.
+Gli stessi pacchetti sono elencati nel `Brewfile`: la barra mostra gli aggiornamenti solo di
+quelli, quindi se ne aggiungi uno aggiungilo anche lì. `terminal-notifier` serve alla barra per le
+sue notifiche (per esempio un login di Claude non riuscito).
+
+RustyBar non è ancora su Homebrew: si compila dal suo repo, con Rust (`rustup-init` una volta, poi
+segui quello che stampa):
+
+```bash
+git clone https://github.com/Francesco-Rapetti/rustybar.git ~/Developer/rustybar
+cd ~/Developer/rustybar
+scripts/signing-cert.sh   # una volta: un certificato di firma locale, chiede la password
+scripts/bundle.sh
+cp -R target/RustyBar.app /Applications/
+```
+
+macOS lega i permessi della barra (Calendari, Accessibilità…) alla firma: con il certificato di
+`signing-cert.sh` restano anche dopo una nuova build, con la firma ad hoc li richiederebbe ogni
+volta. Per aggiornarla: `git pull`, `scripts/bundle.sh`, di nuovo `cp -R`, poi
+`rustybar msg quit` (la riavvia il suo LaunchAgent, vedi sotto).
 
 ### 3. Clona il repo
 
@@ -70,25 +92,25 @@ Il percorso è a tua scelta, ma i comandi sotto assumono `~/Developer/dotfiles`.
 ```bash
 mkdir -p ~/.config
 ln -s ~/Developer/dotfiles/aerospace ~/.config/aerospace
-ln -s ~/Developer/dotfiles/sketchybar ~/.config/sketchybar
+ln -s ~/Developer/dotfiles/rustybar ~/.config/rustybar
 ```
 
 Attenzione:
 
-- Se `~/.config/aerospace` o `~/.config/sketchybar` esistono già come cartelle, rinominale prima
-  (es. `mv ~/.config/sketchybar ~/.config/sketchybar.bak`): altrimenti `ln -s` crea il link
-  *dentro* la cartella esistente invece di sostituirla.
+- Se `~/.config/aerospace` o `~/.config/rustybar` esistono già come cartelle, rinominale prima
+  (es. `mv ~/.config/rustybar ~/.config/rustybar.bak`): altrimenti `ln -s` crea il link *dentro*
+  la cartella esistente invece di sostituirla.
 - Non deve esistere `~/.aerospace.toml`: se AeroSpace trova due config si rifiuta di caricarle.
 - Collega sempre le cartelle, non i singoli file: molti editor salvano riscrivendo il file e
   romperebbero un symlink al file.
 
 ### 5. Impostazioni di macOS
 
-Queste sono le impostazioni che uso insieme ad AeroSpace e SketchyBar:
+Queste sono le impostazioni che uso insieme ad AeroSpace e RustyBar:
 
 | Impostazione | Valore | Perché |
 | --- | --- | --- |
-| Barra dei menu → nascondi automaticamente | Sempre | Al suo posto c'è SketchyBar |
+| Barra dei menu → nascondi automaticamente | Sempre | Al suo posto c'è RustyBar |
 | Barra dei menu a schermo intero | Nascosta | Idem |
 | Scrivania e Dock → riorganizza gli spazi in base all'uso recente | Off | Non rimescola gli spazi di macOS |
 | Scrivania e Dock → clic sullo sfondo per mostrare la scrivania | Solo in Stage Manager | Evita che un clic tra le finestre le sposti tutte |
@@ -115,14 +137,42 @@ open -a AeroSpace
 
 - Al primo avvio concedi il permesso di **Accessibilità** (Impostazioni di Sistema → Privacy e
   sicurezza → Accessibilità → AeroSpace).
-- AeroSpace si avvia da solo al login (`start-at-login = true`) e a sua volta lancia `borders` e
-  `sketchybar/start.sh` (`after-startup-command` in `aerospace.toml`), che avvia `sketchybar` e lo
-  riavvia ogni volta che si chiude, per esempio dopo un crash. **Non** attivare
-  `brew services start sketchybar` o `borders`: partirebbero due istanze, e i plugin di SketchyBar
-  girerebbero con un altro `PATH`. Per chiudere SketchyBar davvero ferma prima `start.sh`:
-  `pkill -f sketchybar/start.sh; pkill -x sketchybar`.
+- AeroSpace si avvia da solo al login (`start-at-login = true`) e a sua volta lancia `borders`
+  (`after-startup-command` in `aerospace.toml`). **Non** attivare `brew services start borders`:
+  partirebbero due istanze.
 
-### 7. Verifica
+### 7. Avvia RustyBar
+
+```bash
+/Applications/RustyBar.app/Contents/MacOS/rustybar service install
+```
+
+Aggiunge un LaunchAgent che avvia RustyBar al login e di nuovo se si chiude, per esempio dopo un
+crash; il suo log è `~/Library/Logs/rustybar.log`. `service uninstall` lo toglie. La barra segue
+AeroSpace dal suo socket; solo i binding che spostano le finestre glielo dicono con
+`rustybar msg trigger aerospace_windows` (vedi `aerospace.toml`). Per scrivere solo `rustybar` dal
+terminale, come nel resto di questo README:
+`sudo ln -s /Applications/RustyBar.app/Contents/MacOS/rustybar /usr/local/bin/rustybar`.
+
+Home Assistant e gli account Claude oltre a quello di `~/.claude` stanno in
+`rustybar/rustybar.local.toml`, che non è nel repo perché ha l'indirizzo del server, i dispositivi
+della casa e gli account:
+
+```bash
+cp ~/Developer/dotfiles/rustybar/rustybar.local.toml.example ~/Developer/dotfiles/rustybar/rustybar.local.toml
+```
+
+Il token di Home Assistant (un token di accesso a lungo termine, dal tuo profilo → Sicurezza) va nel
+Portachiavi: copialo e poi
+`pbpaste | /Applications/RustyBar.app/Contents/MacOS/rustybar secret set home-assistant`. Se c'è
+ancora quello di SketchyBar (`sketchybar-home-assistant`), RustyBar lo copia da solo la prima volta.
+
+RustyBar chiede i permessi la prima volta che servono: **Calendari** per gli eventi, **Posizione**
+per le reti Wi-Fi vicine, **Bluetooth** per collegare le cuffie, **Rete locale** per Home Assistant.
+Per i badge del Dock serve **Accessibilità**: Impostazioni di Sistema → Privacy e sicurezza →
+Accessibilità → RustyBar.
+
+### 8. Verifica
 
 ```bash
 aerospace config --config-path
@@ -132,6 +182,19 @@ Deve stampare `~/.config/aerospace/aerospace.toml`. In alto dovresti vedere la b
 Apple, i workspace, l'app attiva, il logo di Home Assistant, l'uso di CPU, GPU e memoria, Docker (se è in esecuzione), l'uso di Claude, l'uscita e l'ingresso audio, la rete (con la
 VPN, se attiva), la batteria, il prossimo evento del calendario, l'orologio e, se ci sono notifiche
 o aggiornamenti, i loro pallini all'estrema destra, e la finestra attiva con il bordo sfumato.
+
+`rustybar check` controlla la config, `rustybar msg reload` la ricarica (lo fa anche da sola
+quando salvi `rustybar.toml` o `rustybar.local.toml`). Cosa mostra ogni widget, i suoi popup e le
+sue opzioni sono nel [README di RustyBar](https://github.com/Francesco-Rapetti/rustybar#readme).
+
+## SketchyBar, la barra di prima
+
+Prima di RustyBar la barra era SketchyBar, con i plugin di `sketchybar/`: non parte più, ma la sua
+config resta qui di riserva, insieme a questa sua documentazione. Per tornare a usarla:
+`rustybar service uninstall`, `rustybar msg quit`, il link
+`ln -s ~/Developer/dotfiles/sketchybar ~/.config/sketchybar`, `brew install sketchybar` e in
+`aerospace.toml` le righe che la avviavano e le mandavano gli eventi
+(`git log -p aerospace/aerospace.toml` le mostra), poi `aerospace reload-config`.
 
 La barra è trasparente: ogni elemento, tranne il logo Apple, ha uno sfondo suo, un rettangolo
 arrotondato che galleggia sopra la scrivania, allineato ai bordi delle finestre. Quelli fatti di più parti ne hanno uno solo:
@@ -567,18 +630,17 @@ verificarlo, con il server di `home_assistant.conf`, deve stampare `{"message":"
 
 In `aerospace/aerospace.toml`:
 
-- **`gaps.outer.top`**: `40` = altezza di SketchyBar (32) + 8. Il display integrato ha `2` perché
-  sui MacBook con notch macOS riserva già lo spazio in alto. Su un Mac senza notch usa `40` anche
-  per il display integrato.
+- **`gaps.outer.top`**: `42` = 8 sotto le pillole di RustyBar, che finiscono a 34 punti dall'alto.
+  Il display integrato ha `4` perché sui MacBook con notch macOS riserva già lo spazio in alto. Su
+  un Mac senza notch usa `42` anche per il display integrato.
 - **`[workspace-to-monitor-force-assignment]`**: il workspace 1 va sul monitor principale, il 2 sul
   secondario.
 - **`[[on-window-detected]]`**: regole che spostano le app nei workspace (WhatsApp, Telegram, Mail
   → 9; Teams, Slack → 8; Spotify, Chrome → 2). Per trovare l'id di un'app:
   `osascript -e 'id of app "Nome App"'`.
 
-Per Home Assistant, `sketchybar/home_assistant.conf` e il token nel Portachiavi non sono nel repo:
-vanno rifatti su ogni Mac (vedi sopra, dopo CPU, GPU e memoria). Lo stesso vale per
-`sketchybar/claude_accounts.conf`, se usi più account Claude (vedi sopra, dopo l'uso di Claude).
+`rustybar/rustybar.local.toml` (Home Assistant e gli account Claude) e il token di Home Assistant
+nel Portachiavi non sono nel repo: vanno rifatti su ogni Mac (vedi *Avvia RustyBar*).
 
 ## Scorciatoie principali
 
@@ -605,14 +667,16 @@ Modifica i file in `~/Developer/dotfiles` (o tramite i symlink in `~/.config`), 
 
 ```bash
 aerospace reload-config
-sketchybar --reload
 ```
+
+RustyBar si ricarica da sola quando salvi la sua config.
 
 Infine `git commit` e `git push` come in qualsiasi repo.
 
 ## Screenshot
 
-Le immagini del README sono in `screenshots/` e le fa `screenshots/take.sh` con dati inventati:
+Le immagini di SketchyBar in questo README sono in `screenshots/` e le fa `screenshots/take.sh`
+con dati inventati (quelle di RustyBar le fa il suo repo):
 fa girare i plugin come li fa girare SketchyBar, sulla barra vera, ma con gli helper e i comandi di
 `screenshots/mock` (account, dispositivi, eventi, Wi-Fi, container, badge delle app, un crash e Home Assistant finti), e cattura solo le
 finestre di SketchyBar, quindi niente scrivania né finestre sotto i popup. Per qualche secondo la

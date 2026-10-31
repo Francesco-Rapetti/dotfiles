@@ -1,0 +1,49 @@
+# What stays out of the repo, merged over rustybar.toml: copy this file to rustybar.local.toml and
+# fill it in. The Home Assistant token isn't here but in the keychain:
+#   pbpaste | rustybar secret set home-assistant
+
+[widgets.home]
+server = "https://homeassistant.local:8123"
+dashboard = "/lovelace/0"     # what "Apri Home Assistant" opens
+
+[[widgets.home.groups]]
+title = "Luci"
+entities = [
+  { id = "light.soggiorno", name = "Luce soggiorno" },
+  # A switch that drives a light: the bulb in place of the plug
+  { id = "switch.camera", name = "Luce camera", icon = "lightbulb" },
+]
+
+[[widgets.home.groups]]
+title = "Tende"
+entities = [{ id = "cover.tenda", name = "Tenda" }]
+
+[[widgets.home.groups]]
+title = "Clima"
+entities = [{ id = "climate.soggiorno", name = "Clima soggiorno" }]
+
+[[widgets.home.groups]]
+title = "Altro"
+entities = [
+  { id = "switch.stampante_3d", name = "Stampante 3D" },
+  { id = "vacuum.robot", name = "Aspirapolvere" },
+  { id = "script.buonanotte", name = "Buonanotte" },
+]
+
+# A 3D printer of the Bambu Lab integration: its plug among the tiles, turned off at the second
+# click through a script that should do nothing while it prints, and the sensors of its status,
+# progress (%) and time left (hours). Without a printer, leave this table out
+[widgets.home.printer]
+plug = "switch.stampante_3d"
+off = "script.spegni_stampante"
+status = "sensor.stampante_3d_stato_di_stampa"
+progress = "sensor.stampante_3d_progressi_di_stampa"
+remaining = "sensor.stampante_3d_tempo_rimanente"
+
+# The Claude accounts besides the one of ~/.claude: the config dir where
+# `CLAUDE_CONFIG_DIR=<dir> claude` logged in to each, and its color
+[widgets.claude]
+accounts = [
+  { dir = "~/.claude-work", color = "#89B4FA" },
+  { dir = "~/.claude-personal", color = "#A6E3A1" },
+]
