@@ -1,5 +1,6 @@
 # Homebrew packages of these dotfiles: SketchyBar shows when one of them has an update
 tap "felixkratz/formulae"
+tap "mediosz/tap"
 tap "nikitabobko/tap"
 
 brew "felixkratz/formulae/borders"
@@ -8,3 +9,4 @@ brew "terminal-notifier"
 
 cask "nikitabobko/tap/aerospace"
 cask "font-sf-pro"
+cask "mediosz/tap/swipeaerospace"

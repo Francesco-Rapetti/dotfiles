@@ -1,0 +1,23 @@
+# SwipeAeroSpace: trackpad swipes to change AeroSpace workspaces
+# See: https://github.com/MediosZ/SwipeAeroSpace#configuration
+# The app reads ~/.config/swipeareospace/config.toml (sic) and reloads it when it changes. The keys
+# here are read-only in its Settings window; a key left out stays editable there
+
+# How far the fingers must travel for each switch: lower is more sensitive (default 1.0)
+threshold = 0.5
+# Swiping past the last workspace goes back to the first
+wrap = false
+# Same direction as scrolling
+natural = true
+# Only land on workspaces with windows
+skip-empty = true
+# "Three" or "Four": macOS's swipe between full-screen apps must use the other one (see the README)
+fingers = "Three"
+# A longer swipe jumps up to maxSteps workspaces (2-9). Off: one workspace per swipe, since
+# maxSteps = 1 is out of range and would make the app ignore the whole file
+multiSwipe = false
+maxSteps = 5
+# Swipe up for the overview of every workspace, with its apps
+swipeUpOverview = true
+swipeUpFingers = "Three"
+show-empty-workspaces = false

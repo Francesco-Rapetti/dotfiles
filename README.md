@@ -2,7 +2,8 @@
 
 Configurazione di [AeroSpace](https://github.com/nikitabobko/AeroSpace) (tiling window manager) e
 [RustyBar](https://github.com/Francesco-Rapetti/rustybar) (barra di stato), con i bordi delle
-finestre disegnati da [JankyBorders](https://github.com/FelixKratz/JankyBorders). La barra di prima,
+finestre disegnati da [JankyBorders](https://github.com/FelixKratz/JankyBorders) e i workspace
+cambiati con lo swipe sul trackpad da [SwipeAeroSpace](https://github.com/MediosZ/SwipeAeroSpace). La barra di prima,
 [SketchyBar](https://github.com/FelixKratz/SketchyBar), resta in `sketchybar/` di riserva ma non
 parte più (vedi [SketchyBar, la barra di prima](#sketchybar-la-barra-di-prima)).
 
@@ -15,6 +16,7 @@ dotfiles/
 ├── rustybar/                  → ~/.config/rustybar
 │   ├── rustybar.toml          (i widget della barra e le loro opzioni)
 │   └── rustybar.local.toml.example  (da copiare in rustybar.local.toml, che non è nel repo)
+├── swipeaerospace/config.toml → ~/.config/swipeareospace (sic)
 ├── sketchybar/                → ~/.config/sketchybar (la barra di prima, di riserva)
 │   ├── sketchybarrc
 │   ├── start.sh               (avvia SketchyBar e lo riavvia quando si chiude)
@@ -48,6 +50,7 @@ Alla fine segui le istruzioni che stampa per aggiungere `brew` al `PATH` (su App
 
 ```bash
 brew install --cask nikitabobko/tap/aerospace
+brew install --cask mediosz/tap/swipeaerospace
 brew tap FelixKratz/formulae
 brew install borders terminal-notifier rustup
 brew install --cask font-sf-pro
@@ -93,13 +96,16 @@ Il percorso è a tua scelta, ma i comandi sotto assumono `~/Developer/dotfiles`.
 mkdir -p ~/.config
 ln -s ~/Developer/dotfiles/aerospace ~/.config/aerospace
 ln -s ~/Developer/dotfiles/rustybar ~/.config/rustybar
+ln -s ~/Developer/dotfiles/swipeaerospace ~/.config/swipeareospace
 ```
 
 Attenzione:
 
-- Se `~/.config/aerospace` o `~/.config/rustybar` esistono già come cartelle, rinominale prima
-  (es. `mv ~/.config/rustybar ~/.config/rustybar.bak`): altrimenti `ln -s` crea il link *dentro*
-  la cartella esistente invece di sostituirla.
+- Se `~/.config/aerospace`, `~/.config/rustybar` o `~/.config/swipeareospace` esistono già come
+  cartelle, rinominale prima (es. `mv ~/.config/rustybar ~/.config/rustybar.bak`): altrimenti
+  `ln -s` crea il link *dentro* la cartella esistente invece di sostituirla.
+- `swipeareospace`, con le lettere scambiate, è il nome che cerca SwipeAeroSpace: con il nome giusto
+  la app non trova la config e usa le sue impostazioni.
 - Non deve esistere `~/.aerospace.toml`: se AeroSpace trova due config si rifiuta di caricarle.
 - Collega sempre le cartelle, non i singoli file: molti editor salvano riscrivendo il file e
   romperebbero un symlink al file.
@@ -115,6 +121,8 @@ Queste sono le impostazioni che uso insieme ad AeroSpace e RustyBar:
 | Scrivania e Dock → riorganizza gli spazi in base all'uso recente | Off | Non rimescola gli spazi di macOS |
 | Scrivania e Dock → clic sullo sfondo per mostrare la scrivania | Solo in Stage Manager | Evita che un clic tra le finestre le sposti tutte |
 | Scrivania e Dock → trascina le finestre sul bordo per affiancarle | Off | Il tiling nativo si scontra con AeroSpace |
+| Trackpad → Altri gesti → scorri tra le app a tutto schermo | Quattro dita | Le tre dita in orizzontale sono di SwipeAeroSpace |
+| Trackpad → Altri gesti → Mission Control e Exposé app | Quattro dita | Lo swipe in su a tre dita apre la panoramica di SwipeAeroSpace |
 
 Da terminale:
 
@@ -124,10 +132,21 @@ defaults write NSGlobalDomain AppleMenuBarVisibleInFullscreen -bool false
 defaults write com.apple.dock mru-spaces -bool false
 defaults write com.apple.WindowManager EnableStandardClickToShowDesktop -bool false
 defaults write com.apple.WindowManager EnableTilingByEdgeDrag -bool false
+for domain in com.apple.AppleMultitouchTrackpad com.apple.driver.AppleBluetoothMultitouch.trackpad; do
+  defaults write $domain TrackpadThreeFingerHorizSwipeGesture -int 0
+  defaults write $domain TrackpadThreeFingerVertSwipeGesture -int 0
+  defaults write $domain TrackpadFourFingerHorizSwipeGesture -int 2
+  defaults write $domain TrackpadFourFingerVertSwipeGesture -int 2
+done
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.threeFingerHorizSwipeGesture -int 0
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.threeFingerVertSwipeGesture -int 0
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.fourFingerHorizSwipeGesture -int 2
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.fourFingerVertSwipeGesture -int 2
 killall Dock
 ```
 
-La barra dei menu potrebbe richiedere un logout per nascondersi.
+La barra dei menu e i gesti del trackpad potrebbero richiedere un logout per cambiare. Se usi
+SwipeAeroSpace con quattro dita (`fingers` in `swipeaerospace/config.toml`), lascia a macOS le tre.
 
 ### 6. Avvia AeroSpace
 
@@ -172,7 +191,21 @@ per le reti Wi-Fi vicine, **Bluetooth** per collegare le cuffie, **Rete locale**
 Per i badge del Dock serve **Accessibilità**: Impostazioni di Sistema → Privacy e sicurezza →
 Accessibilità → RustyBar.
 
-### 8. Verifica
+### 8. Avvia SwipeAeroSpace
+
+```bash
+open -a SwipeAeroSpace
+```
+
+- Concedi il permesso di **Accessibilità** (Impostazioni di Sistema → Privacy e sicurezza →
+  Accessibilità → SwipeAeroSpace): senza non riceve i gesti del trackpad.
+- Dalla sua icona nella barra dei menu di macOS (appare passando con il mouse in cima allo schermo)
+  apri Settings e attiva **Launch at Login**: lo gestisce macOS, quindi non può stare nella config.
+  Le altre impostazioni vengono da `swipeaerospace/config.toml` e in Settings sono in sola lettura.
+- I gesti di macOS a tre dita vanno spostati su quattro, altrimenti partono insieme a quelli di
+  SwipeAeroSpace (vedi *Impostazioni di macOS*).
+
+### 9. Verifica
 
 ```bash
 aerospace config --config-path
@@ -661,6 +694,19 @@ nel Portachiavi non sono nel repo: vanno rifatti su ogni Mac (vedi *Avvia RustyB
 | `alt-backspace` | Chiudi la finestra |
 | `alt-shift-;` | Modalità *service* (`esc` ricarica la config, `r` resetta il layout, `f` floating, `backspace` chiude le altre finestre, `↑`/`↓` volume) |
 
+Con SwipeAeroSpace:
+
+| Gesto | Azione |
+| --- | --- |
+| Swipe a tre dita in orizzontale | Workspace con finestre precedente/successivo, uno per swipe, nel verso dello scorrimento |
+| `shift` + swipe a tre dita | Sposta la finestra nel workspace precedente/successivo |
+| `ctrl` + swipe a tre dita | Monitor precedente/successivo |
+| Swipe a tre dita in su | Panoramica dei workspace e delle loro finestre (`esc` o swipe in giù per chiuderla) |
+
+Lo swipe con `shift` sposta la finestra senza il `rustybar msg trigger aerospace_windows` dei
+binding: se il workspace resta senza finestre, le icone della barra si aggiornano solo al prossimo
+cambio di focus o di workspace.
+
 ## Modificare la config
 
 Modifica i file in `~/Developer/dotfiles` (o tramite i symlink in `~/.config`), poi ricarica:
@@ -669,7 +715,9 @@ Modifica i file in `~/Developer/dotfiles` (o tramite i symlink in `~/.config`), 
 aerospace reload-config
 ```
 
-RustyBar si ricarica da sola quando salvi la sua config.
+RustyBar e SwipeAeroSpace si ricaricano da sole quando salvi la loro config. Se
+`swipeaerospace/config.toml` ha un errore, SwipeAeroSpace lo ignora tutto, usa le impostazioni
+salvate e mostra l'errore in Settings.
 
 Infine `git commit` e `git push` come in qualsiasi repo.
 
