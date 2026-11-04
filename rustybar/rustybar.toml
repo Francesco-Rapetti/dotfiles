@@ -7,10 +7,22 @@
 # battery, the next event, the clock and the notifications at the right edge
 [layout]
 left = ["apple", "aerospace", "front_app"]
-right = ["home", "system", "docker", "claude", "audio", "network", "battery", "events", "clock", "notifications"]
+right = ["home", "system", "claude", "docker", "audio", "network", "battery", "events", "clock", "notifications"]
+center = ["now_playing"]
 
 [widgets.notifications]
 # The Dock badges to count: Slack and Microsoft Teams
 apps = ["com.tinyspeck.slackmacgap", "com.microsoft.teams2"]
 # The Homebrew packages of these dotfiles, checked for updates every hour
 brewfile = "~/Developer/dotfiles/Brewfile"
+
+[widgets.now_playing]
+# Any app too (browsers, Podcasts…), not only Music and Spotify: a perl process runs with the bar
+other_apps = true
+
+[theme]
+font = "System"
+preset = "catppuccin-mocha"
+primary = "mauve"
+pill_glass = "regular"
+pill_border = 1.0
