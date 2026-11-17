@@ -4,10 +4,11 @@
 # isn't in the repo: copy rustybar.local.toml.example. RustyBar reloads when either changes.
 
 # As SketchyBar had them: the house, the machine and the accounts first, then sound, network,
-# battery, the next event, the clock and the notifications at the right edge
+# the batteries of the devices and of the Mac, the next event, the clock and the notifications at
+# the right edge
 [layout]
 left = ["apple", "aerospace", "front_app"]
-right = ["home", "system", "claude", "docker", "audio", "network", "battery", "events", "clock", "notifications"]
+right = ["home", "system", "claude", "docker", "audio", "network", "devices", "battery", "events", "clock", "notifications"]
 center = ["now_playing"]
 
 [widgets.notifications]
@@ -15,6 +16,10 @@ center = ["now_playing"]
 apps = ["com.tinyspeck.slackmacgap", "com.microsoft.teams2"]
 # The Homebrew packages of these dotfiles, checked for updates every hour
 brewfile = "~/Developer/dotfiles/Brewfile"
+
+[widgets.devices]
+# Every connected device in the pill, not only the ones that run low
+always = true
 
 [widgets.now_playing]
 # Any app too (browsers, Podcasts…), not only Music and Spotify: a perl process runs with the bar
