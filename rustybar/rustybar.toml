@@ -7,7 +7,7 @@
 # the batteries of the devices and of the Mac, the next event, the clock and the notifications at
 # the right edge
 [layout]
-left = ["apple", "aerospace", "front_app"]
+left = ["apple", "fn_keys", "aerospace", "front_app"]
 right = ["home", "system", "claude", "docker", "audio", "network", "devices", "battery", "events", "clock", "notifications"]
 center = ["now_playing"]
 
@@ -20,6 +20,16 @@ brewfile = "~/Developer/dotfiles/Brewfile"
 [widgets.devices]
 # Every connected device in the pill, not only the ones that run low
 always = true
+
+[widgets.fn_keys]
+# While F1, F2… are standard keys: "fn" in the island of the notch and a tab at the left edge of
+# the screen, no pill of its own; ⌃⌥F switches them
+show = ["island", "edge"]
+hotkey = "ctrl-alt-f"
+# Standard keys while a debugger's app is in front, the special features (volume, music) while
+# Spotify or Keynote is; in any other app, the mode switched by hand
+apps = ["com.microsoft.VSCode", "com.apple.dt.Xcode", "com.google.android.studio"]
+media_apps = ["com.spotify.client", "com.apple.iWork.Keynote"]
 
 [widgets.now_playing]
 # Any app too (browsers, Podcasts…), not only Music and Spotify: a perl process runs with the bar
