@@ -9,7 +9,7 @@
 [layout]
 left = ["apple", "fn_keys", "aerospace", "front_app"]
 right = ["home", "system", "claude", "docker", "audio", "network", "devices", "battery", "events", "clock", "notifications"]
-center = ["now_playing", "whatsapp", "telegram"]
+center = ["now_playing", "whatsapp", "telegram", "slack", "teams"]
 
 [widgets.notifications]
 # The Dock badges to count: Slack and Microsoft Teams
