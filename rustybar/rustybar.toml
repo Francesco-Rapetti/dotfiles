@@ -35,6 +35,23 @@ media_apps = ["com.spotify.client", "com.apple.iWork.Keynote"]
 # Any app too (browsers, Podcasts…), not only Music and Spotify: a perl process runs with the bar
 other_apps = true
 
+# A sound with the notice of a new message, in every chat widget and in those of the apps of
+# notifications
+[widgets.whatsapp]
+sound = "Tink"
+
+[widgets.telegram]
+sound = "Tink"
+
+[widgets.slack]
+sound = "Tink"
+
+[widgets.teams]
+sound = "Tink"
+
+[widgets.apps]
+sound = "Tink"
+
 [theme]
 font = "System"
 primary = "mauve"
