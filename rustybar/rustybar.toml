@@ -13,7 +13,7 @@ center = ["now_playing", "whatsapp", "telegram", "slack", "teams"]
 
 [widgets.notifications]
 # The Dock badges to count: Slack and Microsoft Teams
-apps = ["com.tinyspeck.slackmacgap", "com.microsoft.teams2"]
+apps = ["com.tinyspeck.slackmacgap", "com.microsoft.teams2", "com.apple.mail", "Messages"]
 # The Homebrew packages of these dotfiles, checked for updates every hour
 brewfile = "~/Developer/dotfiles/Brewfile"
 
@@ -37,7 +37,7 @@ other_apps = true
 
 [theme]
 font = "System"
-preset = "catppuccin-mocha"
 primary = "mauve"
 pill_glass = "regular"
 pill_border = 1.0
+preset = "catppuccin-mocha"
