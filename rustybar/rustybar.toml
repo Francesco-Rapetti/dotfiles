@@ -58,3 +58,10 @@ primary = "mauve"
 pill_glass = "regular"
 pill_border = 1.0
 preset = "catppuccin-mocha"
+
+# The compose key, as on Linux: a tap of the right ⌘, then a sequence of keys, and in their place
+# comes a character (e gives è, E gives È, ' then e gives é, and so on for every vowel). Held
+# down, the right ⌘ is the ⌘ it always was. The sequences are in the settings window, on its
+# page: those changed or added there are written below
+[compose]
+enabled = true

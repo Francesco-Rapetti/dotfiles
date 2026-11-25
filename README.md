@@ -192,8 +192,18 @@ ancora quello di SketchyBar (`sketchybar-home-assistant`), RustyBar lo copia da 
 
 RustyBar chiede i permessi la prima volta che servono: **Calendari** per gli eventi, **Posizione**
 per le reti Wi-Fi vicine, **Bluetooth** per collegare le cuffie, **Rete locale** per Home Assistant.
-Per i badge del Dock serve **Accessibilità**: Impostazioni di Sistema → Privacy e sicurezza →
-Accessibilità → RustyBar.
+Per i badge del Dock e per il tasto Compose serve **Accessibilità**: Impostazioni di Sistema →
+Privacy e sicurezza → Accessibilità → RustyBar.
+
+RustyBar fa anche da **tasto Compose**, come su Linux (`[compose]` in `rustybar.toml`): un tocco sul
+⌘ destro, poi una sequenza di tasti, e al loro posto arriva un carattere. `e` dà è, `E` dà È, `'`
+poi `e` dà é, e così per ogni vocale; ci sono anche `"u` (ü), `^o` (ô), `~n` (ñ), `,c` (ç), `=e`
+(€), `<<` e `>>` (« »). Si può scrivere veloci: la lettera vale anche se arriva prima che il ⌘ sia
+rilasciato. Tenuto premuto più di un tocco (0,3 s), il ⌘ destro resta ⌘. Mentre una sequenza aspetta
+i suoi tasti, al bordo sinistro della barra c'è una linguetta col segno ⎄. Le sequenze si vedono, si
+cambiano e si aggiungono dalla mela → *Impostazioni dotfiles…* → Tasto Compose, dove c'è anche
+l'interruttore; `rustybar msg compose` dice come sono andate le ultime pressioni del tasto, per
+regolare il tocco.
 
 ### 8. Avvia SwipeAeroSpace
 
